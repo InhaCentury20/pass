@@ -1,0 +1,16 @@
+downloads
+post.json
+results.json
+__init__.*
+items.*
+one_homepass_spider.*
+quotes.*
+soco_list_spider.*
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw

@@ -1,0 +1,34 @@
+# FastAPI 및 서버
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+
+# 데이터베이스
+sqlalchemy==2.0.36
+pymysql==1.1.1
+
+# 설정 관리
+python-dotenv==1.0.1
+pydantic==2.9.2
+pydantic-settings==2.5.2
+email-validator==2.3.0
+
+# 파일 업로드
+python-multipart==0.0.12
+
+# HTTP 클라이언트 (외부 API 호출용)
+httpx==0.28.1
+requests==2.32.3
+
+# 유틸리티
+python-dateutil==2.9.0
+
+# 테스트 (개발용)
+pytest==8.3.3
+pytest-asyncio==0.24.0
+
+# Async MySQL & JWT
+aiomysql==0.2.0
+PyJWT==2.9.0
+
+# 비동기 데이터베이스
+aiomysql>=0.2.0

@@ -56,7 +56,7 @@ cat /Users/mindong-il/pass/inha-capstone-10.pem
 
 #### EC2_HOST
 - Name: `EC2_HOST`
-- Secret: `ec2-54-191-31-239.us-west-2.compute.amazonaws.com`
+- Secret: `ec2-44-246-219-48.us-west-2.compute.amazonaws.com`
 
 #### EC2_USER
 - Name: `EC2_USER`
@@ -79,7 +79,7 @@ cat /Users/mindong-il/pass/inha-capstone-10.pem
 
 ```bash
 # EC2 서버 접속
-ssh -i inha-capstone-10.pem ec2-user@ec2-54-191-31-239.us-west-2.compute.amazonaws.com
+ssh -i inha-capstone-10.pem ec2-user@ec2-44-246-219-48.us-west-2.compute.amazonaws.com
 
 # 초기 설정 스크립트 다운로드 및 실행
 # (GitHub에 푸시한 후)
@@ -148,7 +148,7 @@ nano ~/homepass/homepass-backend/.env
 DATABASE_URL=mysql+aiomysql://homepass_user:STRONG_PASSWORD_HERE@localhost:3306/homepass
 JWT_SECRET=your-super-secret-jwt-key-change-this-to-random-string
 JWT_ALGORITHM=HS256
-CORS_ORIGINS=["http://ec2-54-191-31-239.us-west-2.compute.amazonaws.com"]
+CORS_ORIGINS=["http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com"]
 ```
 
 #### Frontend 환경 변수
@@ -157,7 +157,7 @@ nano ~/homepass/homepass-front/.env.local
 ```
 내용:
 ```env
-NEXT_PUBLIC_API_URL=http://ec2-54-191-31-239.us-west-2.compute.amazonaws.com/api
+NEXT_PUBLIC_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/api
 ```
 
 #### Scraper 환경 변수
@@ -238,8 +238,8 @@ sudo systemctl restart nginx
 ### 🔟 테스트
 
 브라우저에서 다음 URL 접속:
-- Frontend: http://ec2-54-191-31-239.us-west-2.compute.amazonaws.com/
-- Backend API Docs: http://ec2-54-191-31-239.us-west-2.compute.amazonaws.com/docs
+- Frontend: http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/
+- Backend API Docs: http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/docs
 
 ---
 

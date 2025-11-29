@@ -17,7 +17,7 @@
 ### EC2 인스턴스 접속
 ```bash
 chmod 400 inha-capstone-10.pem
-ssh -i inha-capstone-10.pem ec2-user@ec2-54-191-31-239.us-west-2.compute.amazonaws.com
+ssh -i inha-capstone-10.pem ec2-user@ec2-44-246-219-48.us-west-2.compute.amazonaws.com
 ```
 
 ### 시스템 업데이트
@@ -191,7 +191,7 @@ GitHub 저장소의 Settings > Secrets and variables > Actions로 이동하여 �
 
 2. **EC2_HOST**
    ```
-   ec2-54-191-31-239.us-west-2.compute.amazonaws.com
+   ec2-44-246-219-48.us-west-2.compute.amazonaws.com
    ```
 
 3. **EC2_USER**
@@ -245,7 +245,7 @@ nano ~/homepass/homepass-front/.env.local
 
 내용 예시:
 ```env
-NEXT_PUBLIC_API_URL=http://ec2-54-191-31-239.us-west-2.compute.amazonaws.com/api
+NEXT_PUBLIC_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/api
 ```
 
 ### Scraper 환경 변수 (.env)
