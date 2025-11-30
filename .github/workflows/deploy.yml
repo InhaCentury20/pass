@@ -122,7 +122,6 @@ jobs:
             # Check service status
             sudo systemctl status homepass-backend --no-pager
             sudo systemctl status homepass-frontend --no-pager
-            sudo systemctl status homepass-scraper --no-pager
           ENDSSH
 
           rm -f private_key.pem
