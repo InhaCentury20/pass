@@ -5,6 +5,71 @@ import { useQuery } from '@tanstack/react-query';
 import { getNearbyPlaces } from '@/lib/api/places';
 import type { Place } from '@/types/api';
 
+// Naver Maps API 타입 정의
+interface NaverMapsAPI {
+  maps: {
+    LatLng: new (lat: number, lng: number) => NaverLatLng;
+    Map: new (element: HTMLElement, options: MapOptions) => NaverMap;
+    Marker: new (options: MarkerOptions) => NaverMarker;
+    InfoWindow: new (options: InfoWindowOptions) => NaverInfoWindow;
+    Point: new (x: number, y: number) => NaverPoint;
+    Position: {
+      TOP_RIGHT: number;
+    };
+    Event: {
+      addListener: (target: NaverMarker, event: string, handler: () => void) => void;
+    };
+  };
+}
+
+// Naver LatLng instance (opaque type)
+type NaverLatLng = object;
+
+// Naver Map instance (opaque type)
+type NaverMap = object;
+
+interface NaverMarker {
+  setMap: (map: NaverMap | null) => void;
+}
+
+interface NaverInfoWindow {
+  getMap: () => NaverMap | null;
+  close: () => void;
+  open: (map: NaverMap, marker: NaverMarker) => void;
+}
+
+// Naver Point instance (opaque type)
+type NaverPoint = object;
+
+interface MapOptions {
+  center: NaverLatLng;
+  zoom: number;
+  zoomControl: boolean;
+  zoomControlOptions: {
+    position: number;
+  };
+}
+
+interface MarkerOptions {
+  position: NaverLatLng;
+  map: NaverMap;
+  title: string;
+  icon?: {
+    content: string;
+    anchor: NaverPoint;
+  };
+}
+
+interface InfoWindowOptions {
+  content: string;
+}
+
+declare global {
+  interface Window {
+    naver?: NaverMapsAPI;
+  }
+}
+
 interface NaverMapProps {
   latitude: number;
   longitude: number;
@@ -15,7 +80,7 @@ interface NaverMapProps {
 // 네이버 Maps API 스크립트를 동적으로 로드
 function loadNaverMapScript(clientId: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (typeof window !== 'undefined' && (window as any).naver?.maps) {
+    if (typeof window !== 'undefined' && window.naver?.maps) {
       resolve();
       return;
     }
@@ -33,11 +98,10 @@ export default function NaverMap({
   latitude,
   longitude,
   selectedCategory = 'subway',
-  onCategoryChange,
 }: NaverMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
-  const [map, setMap] = useState<any>(null);
-  const [markers, setMarkers] = useState<any[]>([]);
+  const [map, setMap] = useState<NaverMap | null>(null);
+  const markersRef = useRef<NaverMarker[]>([]);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
 
@@ -54,7 +118,10 @@ export default function NaverMap({
     const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
 
     if (!clientId) {
-      setScriptError('네이버 지도 Client ID가 설정되지 않았습니다');
+      // 비동기로 에러 설정하여 effect 규칙 준수
+      Promise.resolve().then(() =>
+        setScriptError('네이버 지도 Client ID가 설정되지 않았습니다')
+      );
       return;
     }
 
@@ -65,9 +132,9 @@ export default function NaverMap({
 
   // 지도 초기화
   useEffect(() => {
-    if (!scriptLoaded || !mapRef.current || map) return;
+    if (!scriptLoaded || !mapRef.current || map || !window.naver) return;
 
-    const naver = (window as any).naver;
+    const naver = window.naver;
     const center = new naver.maps.LatLng(latitude, longitude);
 
     const mapInstance = new naver.maps.Map(mapRef.current, {
@@ -108,12 +175,12 @@ export default function NaverMap({
 
   // 주변 시설 마커 표시
   useEffect(() => {
-    if (!map || !nearbyData?.places) return;
+    if (!map || !nearbyData?.places || !window.naver) return;
 
-    const naver = (window as any).naver;
+    const naver = window.naver;
 
     // 기존 마커 제거
-    markers.forEach((marker) => marker.setMap(null));
+    markersRef.current.forEach((marker) => marker.setMap(null));
 
     // 카테고리별 아이콘 설정
     const categoryIcons: Record<string, string> = {
@@ -179,8 +246,14 @@ export default function NaverMap({
       return marker;
     });
 
-    setMarkers(newMarkers);
-  }, [map, nearbyData, selectedCategory]);
+    // 마커 참조 저장
+    markersRef.current = newMarkers;
+
+    // Cleanup: 컴포넌트 언마운트 시 또는 의존성 변경 시 마커 제거
+    return () => {
+      newMarkers.forEach((marker) => marker.setMap(null));
+    };
+  }, [map, nearbyData, selectedCategory, latitude, longitude]);
 
   if (scriptError) {
     return (
