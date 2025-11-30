@@ -48,6 +48,8 @@ jobs:
 
       - name: Test backend imports
         working-directory: ./homepass-backend
+        env:
+          DATABASE_URL: mysql+pymysql://admin:century20%21@century20-rds.clqcgo84gd3x.us-west-2.rds.amazonaws.com:3306/century20
         run: |
           python -c "from app.main import app; print('Backend OK')"
 
