@@ -7,6 +7,18 @@ import Badge from '@/components/common/Badge';
 import type { Announcement, AnnouncementDetail } from '@/types/api';
 import BookmarkButton from '@/components/common/BookmarkButton';
 import { getMyBookmarks } from '@/lib/api/bookmarks';
+import { getNearbyPlaces } from '@/lib/api/places';
+import dynamic from 'next/dynamic';
+
+// 네이버 지도 컴포넌트를 동적 임포트 (SSR 방지)
+const NaverMap = dynamic(() => import('@/components/common/NaverMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="aspect-video bg-gray-100 rounded-xl flex items-center justify-center">
+      <div className="text-gray-500">지도 로딩 중...</div>
+    </div>
+  ),
+});
 
 type TabType = 'info' | 'commute' | 'qa';
 
@@ -220,9 +232,17 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
             <span>🗺️</span> 위치
           </h2>
-          <div className="aspect-video bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 rounded-xl flex items-center justify-center border-2 border-dashed border-blue-300 text-gray-600">
-            지도 영역 (향후 연동)
-          </div>
+          {announcement.latitude && announcement.longitude ? (
+            <NaverMap
+              latitude={announcement.latitude}
+              longitude={announcement.longitude}
+              selectedCategory={selectedCategory}
+            />
+          ) : (
+            <div className="aspect-video bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 rounded-xl flex items-center justify-center border-2 border-dashed border-blue-300 text-gray-600">
+              위치 정보가 등록되지 않았습니다
+            </div>
+          )}
         </div>
       </Card>
 
@@ -258,6 +278,8 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
               { id: 'subway', label: '🚇 지하철역' },
               { id: 'school', label: '🏫 학교' },
               { id: 'store', label: '🏪 편의점' },
+              { id: 'hospital', label: '🏥 병원' },
+              { id: 'park', label: '🌳 공원' },
             ].map((category) => (
               <button
                 key={category.id}
@@ -272,10 +294,11 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
               </button>
             ))}
           </div>
-          <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
-            <div className="text-4xl mb-2">📍</div>
-            <div className="text-sm text-gray-600">선택한 카테고리에 해당하는 주변 시설 정보가 표시됩니다.</div>
-          </div>
+          <NearbyPlacesPanel
+            latitude={announcement.latitude}
+            longitude={announcement.longitude}
+            category={selectedCategory}
+          />
         </div>
       </Card>
     </div>
@@ -392,6 +415,77 @@ function InfoRow({ label, value, emoji }: { label: string; value: string; emoji:
         <span>{emoji}</span> {label}
       </span>
       <span className="font-bold text-gray-900 text-sm">{value}</span>
+    </div>
+  );
+}
+
+function NearbyPlacesPanel({
+  latitude,
+  longitude,
+  category,
+}: {
+  latitude?: number;
+  longitude?: number;
+  category: string;
+}) {
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['nearby-places-list', latitude, longitude, category],
+    queryFn: () => getNearbyPlaces(latitude!, longitude!, category),
+    enabled: !!latitude && !!longitude,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  if (!latitude || !longitude) {
+    return (
+      <div className="p-6 bg-yellow-50 rounded-xl border border-yellow-200 text-center">
+        <div className="text-4xl mb-2">📍</div>
+        <div className="text-sm text-yellow-600">위치 정보가 없어 주변 시설을 검색할 수 없습니다.</div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
+        <div className="animate-spin w-8 h-8 mx-auto mb-2 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+        <div className="text-sm text-gray-600">주변 시설 검색 중...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-50 rounded-xl border border-red-200 text-center">
+        <div className="text-4xl mb-2">⚠️</div>
+        <div className="text-sm text-red-600">주변 시설 검색 중 오류가 발생했습니다.</div>
+      </div>
+    );
+  }
+
+  if (!data || data.places.length === 0) {
+    return (
+      <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
+        <div className="text-4xl mb-2">📍</div>
+        <div className="text-sm text-gray-600">주변에서 해당 시설을 찾을 수 없습니다.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {data.places.map((place, idx) => (
+        <div
+          key={`${place.name}-${idx}`}
+          className="p-4 bg-white rounded-xl border border-gray-200 hover:shadow-md transition-all"
+        >
+          <div className="flex justify-between items-start mb-2">
+            <h4 className="font-bold text-gray-900">{place.name}</h4>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">#{idx + 1}</span>
+          </div>
+          <p className="text-sm text-gray-600 mb-1">📍 {place.address}</p>
+          {place.telephone && <p className="text-sm text-gray-600">☎️ {place.telephone}</p>}
+        </div>
+      ))}
     </div>
   );
 }

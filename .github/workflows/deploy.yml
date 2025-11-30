@@ -78,6 +78,9 @@ jobs:
           PRIVATE_KEY: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
           HOST: ${{ secrets.EC2_HOST }}
           USER: ${{ secrets.EC2_USER }}
+          NAVER_CLIENT_ID: ${{ secrets.NAVER_CLIENT_ID }}
+          NAVER_CLIENT_SECRET: ${{ secrets.NAVER_CLIENT_SECRET }}
+          NAVER_MAP_CLIENT_ID: ${{ secrets.NAVER_MAP_CLIENT_ID }}
         run: |
           echo "$PRIVATE_KEY" > private_key.pem
           chmod 600 private_key.pem
@@ -88,7 +91,11 @@ jobs:
             ${USER}@${HOST}:/home/${USER}/homepass/
 
           # Deploy on EC2
-          ssh -i private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} << 'ENDSSH'
+          ssh -i private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} \
+            "NAVER_CLIENT_ID='${NAVER_CLIENT_ID}' \
+             NAVER_CLIENT_SECRET='${NAVER_CLIENT_SECRET}' \
+             NAVER_MAP_CLIENT_ID='${NAVER_MAP_CLIENT_ID}' \
+             bash -s" << 'ENDSSH'
             cd /home/ec2-user/homepass
 
             # Stop existing services
@@ -96,8 +103,26 @@ jobs:
             sudo systemctl stop homepass-backend || true
             sudo systemctl stop homepass-scraper || true
 
-            # Update frontend
+            # Create backend .env file with secrets
+            cd homepass-backend
+            cat > .env << EOF
+DATABASE_URL=mysql+pymysql://admin:century20%21@century20-rds.clqcgo84gd3x.us-west-2.rds.amazonaws.com:3306/century20
+JWT_SECRET_KEY=임의의_난수값
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+LOG_LEVEL=INFO
+NAVER_CLIENT_ID=$NAVER_CLIENT_ID
+NAVER_CLIENT_SECRET=$NAVER_CLIENT_SECRET
+EOF
+            cd ..
+
+            # Create frontend .env.local file
             cd homepass-front
+            cat > .env.local << EOF
+BACKEND_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com
+NEXT_PUBLIC_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com
+NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=$NAVER_MAP_CLIENT_ID
+EOF
             npm ci
             npm run build
             cd ..

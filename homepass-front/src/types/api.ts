@@ -165,3 +165,23 @@ export interface ApiResponse<T> {
   error?: string;
 }
 
+// 주변 시설 관련 타입
+export interface Place {
+  name: string;
+  address: string;
+  category?: string;
+  telephone?: string;
+  mapx?: string;
+  mapy?: string;
+  link?: string;
+}
+
+export interface NearbyPlacesResponse {
+  center: {
+    lat: number;
+    lng: number;
+  };
+  category: string;
+  places: Place[];
+}
+

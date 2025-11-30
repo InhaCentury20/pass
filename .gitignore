@@ -49,3 +49,7 @@ htmlcov/
 .scrapy/
 # Only ignore JSON files in scraper directory (scraped data)
 homepass-scraper/*.json
+
+.claude
+LOCAL_TEST_GUIDE.md
+GITHUB_SECRETS_SETUP.md
