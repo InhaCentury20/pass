@@ -1,4 +1,4 @@
-import { clientBackendBaseUrl } from './config';
+import { browserBackendBaseUrl } from './config';
 import type { NearbyPlacesResponse } from '@/types/api';
 
 /**
@@ -15,7 +15,7 @@ export async function getNearbyPlaces(
     category,
   });
 
-  const res = await fetch(`${clientBackendBaseUrl}/api/v1/places/nearby?${params}`);
+  const res = await fetch(`${browserBackendBaseUrl}/api/v1/places/nearby?${params}`);
 
   if (!res.ok) {
     throw new Error('주변 시설 조회에 실패했습니다');
