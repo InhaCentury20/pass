@@ -30,6 +30,12 @@ class Settings(BaseSettings):
     # Cookie / Session
     COOKIE_SECURE: bool = False  # HTTPS 환경이면 True
     COOKIE_DOMAIN: str | None = None  # 필요 시 설정 (예: ".example.com")
+
+    # Scraper 실행 설정
+    SCRAPER_DIR: str | None = None
+    SCRAPER_VENV_PYTHON: str | None = None
+    SCRAPER_START_BOARD_ID: int = 7000
+    SCRAPER_DAYS_LIMIT: int = 7
     
     class Config:
         env_file = ".env"

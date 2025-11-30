@@ -119,4 +119,13 @@ export const getAnnouncementByIdFromCache = (
   id: number,
 ): Announcement | undefined => announcements.find((item) => item.announcement_id === id);
 
+export interface AnnouncementScrapePayload {
+  start_board_id?: number;
+  days_limit?: number;
+}
+
+export const triggerAnnouncementsScrape = async (payload?: AnnouncementScrapePayload): Promise<void> => {
+  await apiClient.post(API_ENDPOINTS.ANNOUNCEMENTS.SCRAPE, payload ?? {});
+};
+
 

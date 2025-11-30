@@ -45,3 +45,8 @@ class AnnouncementListResponse(BaseModel):
     size: int
     items: List[AnnouncementSchema]
 
+
+class AnnouncementScrapeRequest(BaseModel):
+    start_board_id: Optional[int] = Field(default=None, ge=1)
+    days_limit: Optional[int] = Field(default=None, ge=1)
+

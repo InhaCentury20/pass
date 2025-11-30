@@ -10,6 +10,7 @@ import {
   updatePreferences,
   updateSubscriptionInfo,
 } from '@/lib/api/users';
+import { triggerAnnouncementsScrape } from '@/lib/api/announcements';
 import type {
   NotificationSettingPayload,
   Preference,
@@ -93,6 +94,8 @@ export default function SettingsPage() {
     dday: true,
     result: true,
   });
+  const [scrapeStatus, setScrapeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [scrapeMessage, setScrapeMessage] = useState('');
 
   const [personalStatus, setPersonalStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(
@@ -190,6 +193,20 @@ export default function SettingsPage() {
   useEffect(() => {
     loadProfile();
   }, [loadProfile]);
+
+  const handleScrapeTrigger = async () => {
+    setScrapeStatus('loading');
+    setScrapeMessage('');
+    try {
+      await triggerAnnouncementsScrape();
+      setScrapeStatus('success');
+      setScrapeMessage('스크레이퍼 실행을 시작했습니다. 몇 분 후 공고가 업데이트됩니다.');
+    } catch (error) {
+      console.error(error);
+      setScrapeStatus('error');
+      setScrapeMessage('스크레이퍼 실행에 실패했습니다. 다시 시도해 주세요.');
+    }
+  };
 
   const handlePersonalSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -355,14 +372,28 @@ export default function SettingsPage() {
           <h1 className="text-4xl font-bold text-gray-900 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent animate-fade-in">
             설정
           </h1>
-          <button
-            onClick={loadProfile}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow hover:from-blue-600 hover:to-indigo-700 transition-all disabled:opacity-60"
-            disabled={profileLoading}
-          >
-            새로 고침
-          </button>
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={handleScrapeTrigger}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold shadow hover:from-emerald-600 hover:to-teal-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={scrapeStatus === 'loading'}
+            >
+              {scrapeStatus === 'loading' ? '공고 업데이트 중...' : '공고 목록 업데이트'}
+            </button>
+            <button
+              onClick={loadProfile}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow hover:from-blue-600 hover:to-indigo-700 transition-all disabled:opacity-60"
+              disabled={profileLoading}
+            >
+              새로 고침
+            </button>
+          </div>
         </div>
+        {scrapeMessage && (
+          <Card className={`mb-6 ${scrapeStatus === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+            <div className="p-4 text-sm">{scrapeMessage}</div>
+          </Card>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           <div className="lg:col-span-1 space-y-6">

@@ -20,6 +20,7 @@ export const API_ENDPOINTS = {
   ANNOUNCEMENTS: {
     LIST: '/api/v1/announcements',
     DETAIL: (id: number) => `/api/v1/announcements/${id}`,
+    SCRAPE: '/api/v1/announcements/scrape',
   },
   
   // 신청 관련

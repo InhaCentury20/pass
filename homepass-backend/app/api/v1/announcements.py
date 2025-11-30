@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone, timedelta
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -13,7 +13,9 @@ from app.schemas import (
     AnnouncementDetailSchema,
     AnnouncementListResponse,
     AnnouncementSchema,
+    AnnouncementScrapeRequest,
 )
+from app.services.scraper_runner import scraper_runner
 
 router = APIRouter(prefix="/announcements", tags=["announcements"])
 
@@ -132,6 +134,20 @@ def get_announcements(
 
     items = [_serialize_announcement(ann) for ann in sliced]
     return AnnouncementListResponse(total=total, page=page, size=size, items=items)
+
+
+@router.post("/scrape", status_code=202)
+def trigger_announcements_scrape(
+    payload: AnnouncementScrapeRequest = Body(default_factory=AnnouncementScrapeRequest),
+):
+    """Starts the external Scrapy crawler to refresh announcement data."""
+    try:
+        scraper_runner.start(payload.start_board_id, payload.days_limit)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return {"status": "started"}
 
 
 @router.get("/{announcement_id}", response_model=AnnouncementDetailSchema)
