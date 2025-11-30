@@ -29,7 +29,10 @@ export default function Home() {
     queryFn: getMyBookmarks,
     staleTime: 30_000,
   });
-  const bookmarkedIds = useMemo(() => new Set((myBookmarks ?? []).map((a) => a.announcement_id)), [myBookmarks]);
+  const bookmarkedIds = useMemo(
+    () => new Set((myBookmarks ?? []).map((announcement: Announcement) => announcement.announcement_id)),
+    [myBookmarks],
+  );
 
   useEffect(() => {
     const controller = new AbortController();
@@ -48,13 +51,19 @@ export default function Home() {
           { signal: controller.signal },
         );
         setAnnouncements(response.items);
-      } catch (err: any) {
+      } catch (err: unknown) {
         // 요청 취소는 오류로 처리하지 않음
+        const error = err as {
+          name?: string;
+          code?: string;
+          message?: string;
+        };
+        const message = typeof error?.message === 'string' ? error.message : '';
         const isCanceled =
           axios.isCancel?.(err) ||
-          err?.name === 'CanceledError' ||
-          err?.code === 'ERR_CANCELED' ||
-          err?.message?.includes?.('aborted without reason');
+          error?.name === 'CanceledError' ||
+          error?.code === 'ERR_CANCELED' ||
+          message.includes('aborted without reason');
         if (isCanceled) {
           return;
         }
@@ -143,16 +152,19 @@ export default function Home() {
         case 'rent':
           return (a.monthly_rent ?? Infinity) - (b.monthly_rent ?? Infinity);
         case 'latest':
-        default:
+        default: {
           // Post_Date 우선 정렬(내림차순), 없으면 scraped_at → application_end_date
-          const getDate = (x: any) =>
-            new Date(x?.post_date ?? x?.scraped_at ?? x?.application_end_date ?? 0).getTime();
+          const getDate = (announcement: Announcement) =>
+            new Date(
+              announcement.post_date ?? announcement.scraped_at ?? announcement.application_end_date ?? 0,
+            ).getTime();
           return getDate(b) - getDate(a);
+        }
       }
     });
 
     return result;
-  }, [announcements, searchQuery, selectedRegion, selectedHousingType, sortBy]);
+  }, [announcements, searchQuery, selectedRegion, selectedHousingType, sortBy, showPast]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">

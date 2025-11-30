@@ -42,23 +42,24 @@ export const getAnnouncements = async (
     // 백엔드가 특정 필터를 지원하지 않을 때 500이 발생 → 완화 요청 후 프론트에서 후처리
     if (status === 500) {
       const relaxedParams: AnnouncementQueryParams = {};
-      Object.entries(params).forEach(([k, v]) => {
+      for (const key of Object.keys(params) as (keyof AnnouncementQueryParams)[]) {
+        const value = params[key];
         if (
-          v !== undefined &&
-          v !== null &&
-          v !== '' &&
-          !['exclude_past', 'within_days', 'order_by', 'order'].includes(k)
+          value !== undefined &&
+          value !== null &&
+          value !== '' &&
+          !['exclude_past', 'within_days', 'order_by', 'order'].includes(key)
         ) {
-          (relaxedParams as any)[k] = v;
+          relaxedParams[key] = value;
         }
-      });
+      }
 
       try {
         const relaxedData = await callBackend(relaxedParams);
         // 프론트에서 30일 이내/정렬(post_date desc) 적용
         const now = new Date();
         const oneMonthLater = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-        const filtered = (relaxedData.items ?? []).filter((a) => {
+        const filtered = (relaxedData.items ?? []).filter((a: Announcement) => {
           if (params.exclude_past === false) return true;
           const withinDays = params.within_days ?? 30;
           if (a.dday !== undefined && a.dday !== null) {
@@ -71,8 +72,10 @@ export const getAnnouncements = async (
           return false;
         });
         filtered.sort((a, b) => {
-          const getDate = (x: any) =>
-            new Date(x?.post_date ?? x?.scraped_at ?? x?.application_end_date ?? 0).getTime();
+          const getDate = (announcement: Announcement) =>
+            new Date(
+              announcement.post_date ?? announcement.scraped_at ?? announcement.application_end_date ?? 0,
+            ).getTime();
           return getDate(b) - getDate(a);
         });
         const size = Number(params.size ?? filtered.length);

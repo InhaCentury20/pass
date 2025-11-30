@@ -7,14 +7,15 @@ export const toggleBookmark = async (id: number): Promise<{ success: boolean }> 
   return data ?? { success: true };
 };
 
+type BookmarkResponse = Announcement[] | { items?: Announcement[] };
+
 export const getMyBookmarks = async (): Promise<Announcement[]> => {
-  const { data } = await apiClient.get(API_ENDPOINTS.BOOKMARKS.ME);
-  // 응답 형태가 { items: Announcement[] } 또는 Announcement[] 인 경우 모두 지원
+  const { data } = await apiClient.get<BookmarkResponse>(API_ENDPOINTS.BOOKMARKS.ME);
   if (Array.isArray(data)) {
-    return data as Announcement[];
+    return data;
   }
-  if (Array.isArray((data as any)?.items)) {
-    return (data as any).items as Announcement[];
+  if ('items' in data && Array.isArray(data.items)) {
+    return data.items;
   }
   return [];
 };

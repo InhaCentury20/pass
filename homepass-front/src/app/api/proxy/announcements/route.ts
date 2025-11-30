@@ -44,14 +44,13 @@ export async function GET(request: Request) {
     }
     const data = await res.json();
     return NextResponse.json(data, { status: 200 });
-  } catch (error: any) {
-    console.error(
-      `[proxy/announcements] Proxy request failed for ${backendUrl.toString()} - ${String(error?.message || error)}`,
-    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[proxy/announcements] Proxy request failed for ${backendUrl.toString()} - ${message}`);
     return NextResponse.json(
       {
         message: 'Proxy request failed',
-        error: String(error?.message || error),
+        error: message,
         upstreamUrl: backendUrl.toString(),
       },
       { status: 500 },
