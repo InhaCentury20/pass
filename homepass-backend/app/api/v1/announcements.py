@@ -24,15 +24,27 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _calculate_dday(end_at: datetime | None) -> int | None:
-    if not end_at:
+def _ensure_aware(dt: datetime | None) -> datetime | None:
+    if dt is None:
         return None
-    days = (end_at.date() - _now().date()).days
+    if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
+        return None
+    return dt.astimezone(timezone.utc)
+
+
+def _calculate_dday(end_at: datetime | None) -> int | None:
+    aware_end = _ensure_aware(end_at)
+    if not aware_end:
+        return None
+    days = (aware_end.date() - _now().date()).days
     return days if days >= 0 else None
 
 
 def _serialize_announcement(announcement: Announcement) -> AnnouncementSchema:
     dday = _calculate_dday(announcement.application_end_date)
+    application_end_date = _ensure_aware(announcement.application_end_date)
+    scraped_at = _ensure_aware(announcement.scraped_at)
+
     return AnnouncementSchema(
         announcement_id=announcement.announcement_id,
         title=announcement.title,
@@ -44,9 +56,9 @@ def _serialize_announcement(announcement: Announcement) -> AnnouncementSchema:
         original_pdf_url=announcement.original_pdf_url,
         latitude=float(announcement.latitude) if announcement.latitude is not None else None,
         longitude=float(announcement.longitude) if announcement.longitude is not None else None,
-        application_end_date=announcement.application_end_date,
-        scraped_at=announcement.scraped_at,
-        post_date=announcement.scraped_at or announcement.application_end_date,
+        application_end_date=application_end_date,
+        scraped_at=scraped_at,
+        post_date=scraped_at or application_end_date,
         min_deposit=announcement.min_deposit,
         max_deposit=announcement.max_deposit,
         monthly_rent=announcement.monthly_rent,
@@ -81,13 +93,13 @@ def get_announcements(
         if exclude_past:
             announcements = [
                 ann for ann in announcements
-                if ann.application_end_date is not None and ann.application_end_date >= now
+                if (end_at := _ensure_aware(ann.application_end_date)) is not None and end_at >= now
             ]
         if within_days is not None:
             bound = now + timedelta(days=within_days)
             announcements = [
                 ann for ann in announcements
-                if ann.application_end_date is not None and ann.application_end_date <= bound
+                if (end_at := _ensure_aware(ann.application_end_date)) is not None and end_at <= bound
             ]
 
     if region:
@@ -108,10 +120,11 @@ def get_announcements(
         desc = order_lower == "desc"
 
         def dt_effective(value: datetime | None) -> datetime:
-            if value is None:
+            aware_value = _ensure_aware(value)
+            if aware_value is None:
                 # None을 항상 마지막으로: asc면 최대, desc면 최소로 치환
                 return datetime.max if not desc else datetime.min
-            return value
+            return aware_value
 
         def key_func(ann: Announcement):
             if order_by == "post_date":
