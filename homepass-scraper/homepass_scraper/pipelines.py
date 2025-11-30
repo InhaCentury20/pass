@@ -6,8 +6,9 @@ from urllib.parse import unquote, urlparse
 import os
 import json
 import pymysql
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 from datetime import datetime
+import re
 
 
 class HomepassScraperPipeline(FilesPipeline):
@@ -108,6 +109,80 @@ class MySQLAnnouncementsPipeline:
         if parsed.path and len(parsed.path) > 1:
             self.database = parsed.path.lstrip("/")
 
+    @staticmethod
+    def _as_dict(value: Any) -> Dict[str, Any]:
+        return value.copy() if isinstance(value, dict) else {}
+
+    @staticmethod
+    def _normalize_int(value: Any) -> Optional[int]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, (int, float)):
+            return int(value)
+        if isinstance(value, str):
+            cleaned = re.sub(r"[^\d\-]", "", value)
+            if not cleaned:
+                return None
+            try:
+                return int(cleaned)
+            except ValueError:
+                return None
+        return None
+
+    @staticmethod
+    def _normalize_bool(value: Any) -> Optional[bool]:
+        if value is None:
+            return None
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(int(value))
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"1", "true", "y", "yes", "t", "on"}:
+                return True
+            if normalized in {"0", "false", "n", "no", "f", "off"}:
+                return False
+        return None
+
+    @staticmethod
+    def _sanitize_str(value: Any) -> Optional[str]:
+        if isinstance(value, str):
+            stripped = value.strip()
+            return stripped or None
+        return None
+
+    @staticmethod
+    def _ensure_list_of_str(value: Any) -> List[str]:
+        if isinstance(value, list):
+            result: List[str] = []
+            for item in value:
+                if isinstance(item, str):
+                    stripped = item.strip()
+                    if stripped:
+                        result.append(stripped)
+            return result
+        if isinstance(value, str) and value.strip():
+            return [value.strip()]
+        return []
+
+    @staticmethod
+    def _ensure_list_of_dict(value: Any) -> List[Dict[str, Any]]:
+        if isinstance(value, list):
+            return [entry for entry in value if isinstance(entry, dict)]
+        return []
+
+    @staticmethod
+    def _json_or_none(value: Any) -> Optional[str]:
+        if value in (None, [], {}):
+            return None
+        try:
+            return json.dumps(value, ensure_ascii=False, default=str)
+        except (TypeError, ValueError):
+            return None
+
     def open_spider(self, spider):
         self.conn = pymysql.connect(
             host=self.host,
@@ -139,34 +214,85 @@ class MySQLAnnouncementsPipeline:
             spider.logger.info(f"Skip DB insert: title does not contain '공고' | title='{title}'")
             return item
 
+        parsed_payload = self._as_dict(item.get("parsed_content"))
+
+        def pick_value(key: str) -> Any:
+            value = item.get(key)
+            if value is None or (isinstance(value, str) and not value.strip()):
+                return parsed_payload.get(key)
+            return value
+
         # 매핑
-        source_organization = item.get("department")  # 담당부서/사업자 → 출처기관으로 매핑
-        source_url = item.get("post_url")
-        housing_type = item.get("category")
+        source_organization = self._sanitize_str(pick_value("department")) or self._sanitize_str(
+            pick_value("source_organization")
+        )
+        source_url = self._sanitize_str(pick_value("post_url")) or self._sanitize_str(pick_value("source_url"))
+        housing_type = self._sanitize_str(pick_value("category")) or self._sanitize_str(pick_value("housing_type"))
 
         # 주소/지역
-        address_detail = item.get("location")
-        region = None  # 필요시 location에서 파싱하여 채울 수 있음
+        address_detail = self._sanitize_str(pick_value("location")) or self._sanitize_str(pick_value("address_detail"))
+        region = self._sanitize_str(pick_value("region"))
 
-        post_date = self._parse_date(item.get("post_date"))
-        application_end_date = self._parse_date(item.get("apply_date"))
-        original_pdf_url = self._safe_first(item.get("file_urls", []))
-        application_link = item.get("application_link")
-        homepage_link = item.get("homepage_link")
+        post_date = self._parse_date(pick_value("post_date") or item.get("post_date"))
+        application_end_date = self._parse_date(pick_value("apply_date") or item.get("apply_date"))
+        original_pdf_url = self._safe_first(item.get("file_urls", [])) or self._sanitize_str(
+            pick_value("original_pdf_url")
+        )
+        application_link = self._sanitize_str(pick_value("application_link"))
+        homepage_link = self._sanitize_str(pick_value("homepage_link"))
 
-        # parsed_content: 추가 필드를 JSON으로 원본 보존
-        parsed_payload = {
-            "intro_text": item.get("intro_text"),
-            "complex_name": item.get("complex_name"),
-            "supply_info": item.get("supply_info"),
-            "contractor": item.get("contractor"),
-            "application_link": application_link,
-            "homepage_link": homepage_link,
-            "contact_phone": item.get("contact_phone"),
-            "contact_hours": item.get("contact_hours"),
-            "attachment_name": item.get("attachment_name"),
-        }
+        # 부가 텍스트 필드들을 parsed_content에 병합
+        for field in (
+            "intro_text",
+            "complex_name",
+            "supply_info",
+            "contractor",
+            "contact_phone",
+            "contact_hours",
+            "attachment_name",
+        ):
+            value = self._sanitize_str(pick_value(field))
+            if value is not None:
+                parsed_payload[field] = value
+        if application_link:
+            parsed_payload["application_link"] = application_link
+        if homepage_link:
+            parsed_payload["homepage_link"] = homepage_link
+
+        # 수치/JSON 필드 정규화
+        min_deposit = self._normalize_int(pick_value("min_deposit"))
+        max_deposit = self._normalize_int(pick_value("max_deposit"))
+        monthly_rent = self._normalize_int(pick_value("monthly_rent"))
+        total_households = self._normalize_int(pick_value("total_households"))
+        commute_time = self._normalize_int(pick_value("commute_time"))
+        eligibility = self._sanitize_str(pick_value("eligibility"))
+        commute_base_address = self._sanitize_str(pick_value("commute_base_address"))
+        is_customized_flag = self._normalize_bool(pick_value("is_customized"))
+        image_urls = self._ensure_list_of_str(pick_value("image_urls"))
+        schedules = self._ensure_list_of_dict(pick_value("schedules"))
+
+        for key, value in (
+            ("min_deposit", min_deposit),
+            ("max_deposit", max_deposit),
+            ("monthly_rent", monthly_rent),
+            ("total_households", total_households),
+            ("commute_time", commute_time),
+            ("eligibility", eligibility),
+            ("commute_base_address", commute_base_address),
+        ):
+            if value is not None:
+                parsed_payload[key] = value
+        if is_customized_flag is not None:
+            parsed_payload["is_customized"] = is_customized_flag
+        if image_urls:
+            parsed_payload["image_urls"] = image_urls
+        if schedules:
+            parsed_payload["schedules"] = schedules
+
         parsed_content = json.dumps(parsed_payload, ensure_ascii=False)
+        image_urls_json = self._json_or_none(image_urls)
+        schedules_json = self._json_or_none(schedules)
+        is_customized_db = int(is_customized_flag) if isinstance(is_customized_flag, bool) else None
 
         sql = f"""
             INSERT INTO {self.table}
@@ -182,9 +308,19 @@ class MySQLAnnouncementsPipeline:
                 application_link,
                 homepage_link,
                 parsed_content,
-                original_pdf_url
+                original_pdf_url,
+                min_deposit,
+                max_deposit,
+                monthly_rent,
+                total_households,
+                eligibility,
+                commute_base_address,
+                commute_time,
+                is_customized,
+                image_urls,
+                schedules
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 source_organization = VALUES(source_organization),
                 source_url = VALUES(source_url),
@@ -196,7 +332,17 @@ class MySQLAnnouncementsPipeline:
                 application_link = VALUES(application_link),
                 homepage_link = VALUES(homepage_link),
                 parsed_content = VALUES(parsed_content),
-                original_pdf_url = VALUES(original_pdf_url)
+                original_pdf_url = VALUES(original_pdf_url),
+                min_deposit = VALUES(min_deposit),
+                max_deposit = VALUES(max_deposit),
+                monthly_rent = VALUES(monthly_rent),
+                total_households = VALUES(total_households),
+                eligibility = VALUES(eligibility),
+                commute_base_address = VALUES(commute_base_address),
+                commute_time = VALUES(commute_time),
+                is_customized = VALUES(is_customized),
+                image_urls = VALUES(image_urls),
+                schedules = VALUES(schedules)
         """
         params = (
             title,
@@ -211,6 +357,16 @@ class MySQLAnnouncementsPipeline:
             homepage_link,
             parsed_content,
             original_pdf_url,
+            min_deposit,
+            max_deposit,
+            monthly_rent,
+            total_households,
+            eligibility,
+            commute_base_address,
+            commute_time,
+            is_customized_db,
+            image_urls_json,
+            schedules_json,
         )
 
         try:
