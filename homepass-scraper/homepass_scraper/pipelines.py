@@ -7,7 +7,7 @@ import os
 import json
 import pymysql
 from typing import Optional, Any, Dict, List
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import re
 
 
@@ -76,19 +76,37 @@ class MySQLAnnouncementsPipeline:
 
     @staticmethod
     def _parse_date(value: Optional[str]) -> Optional[datetime]:
+        """
+        문자열을 파싱하여 UTC 기준 datetime으로 변환합니다.
+        입력값이 KST라고 가정하고 9시간을 빼서 UTC로 저장하거나,
+        이미 UTC라면 그대로 둡니다. (여기서는 KST 입력 가정)
+        """
         if not value:
             return None
         v = value.strip()
         # 기대 포맷 예: '2025-11-10' 또는 '2025-11-10 00:00:00'
+        dt_parsed = None
         for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S"):
             try:
-                dt = datetime.strptime(v, fmt)
-                # datetime 컬럼으로 저장
+                dt_parsed = datetime.strptime(v, fmt)
                 if fmt == "%Y-%m-%d":
-                    return datetime(dt.year, dt.month, dt.day, 0, 0, 0)
-                return dt
+                    dt_parsed = datetime(dt_parsed.year, dt_parsed.month, dt_parsed.day, 0, 0, 0)
+                break
             except ValueError:
                 continue
+
+        if dt_parsed:
+            # KST(UTC+9)라고 가정하고 timezone info를 붙이거나
+            # UTC로 변환해서 리턴.
+            # 방법 1: 단순히 시간만 UTC로 밀어버리기 (DB가 TIMESTAMP이므로 UTC 저장됨)
+            # dt_utc = dt_parsed - timedelta(hours=9)
+            # return dt_utc.replace(tzinfo=timezone.utc)
+            
+            # 방법 2: 일단 naive로 리턴하되, DB 세션이 UTC라면
+            # insert 시점에 9시간 뺀 값을 넣어야 함.
+            # 여기서는 '애플리케이션 레벨에서 UTC로 변환'하여 리턴합니다.
+            return (dt_parsed - timedelta(hours=9)).replace(tzinfo=timezone.utc)
+        
         return None
 
     def _apply_database_url(self, database_url: str) -> None:

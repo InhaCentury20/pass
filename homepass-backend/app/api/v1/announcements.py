@@ -28,7 +28,8 @@ def _ensure_aware(dt: datetime | None) -> datetime | None:
     if dt is None:
         return None
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
-        return None
+        # 타임존 정보가 없으면 UTC로 간주
+        return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
 
