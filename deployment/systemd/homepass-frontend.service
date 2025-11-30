@@ -8,6 +8,7 @@ User=ec2-user
 WorkingDirectory=/home/ec2-user/homepass/homepass-front
 Environment="PATH=/usr/bin:/bin"
 Environment="NODE_ENV=production"
+EnvironmentFile=-/home/ec2-user/homepass/homepass-front/.env.production
 ExecStart=/usr/bin/npm start
 Restart=always
 RestartSec=10

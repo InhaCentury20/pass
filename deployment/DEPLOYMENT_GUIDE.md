@@ -229,7 +229,7 @@ JWT_SECRET=your-secret-key-here
 JWT_ALGORITHM=HS256
 
 # CORS
-CORS_ORIGINS=["http://localhost:3000", "http://your-domain.com"]
+CORS_ORIGINS=["http://localhost:3000", "http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com"]
 
 # AWS (if using S3)
 AWS_ACCESS_KEY_ID=your-access-key
@@ -237,16 +237,19 @@ AWS_SECRET_ACCESS_KEY=your-secret-key
 AWS_REGION=us-west-2
 ```
 
-### Frontend 환경 변수 (.env.local)
+### Frontend 환경 변수 (.env.production)
 ```bash
-# EC2에서 frontend .env.local 파일 생성
-nano ~/homepass/homepass-front/.env.local
+# 예시 env 복사 후 편집
+cp ~/homepass/deployment/env/frontend.env.example ~/homepass/homepass-front/.env.production
+nano ~/homepass/homepass-front/.env.production
 ```
 
 내용 예시:
 ```env
-NEXT_PUBLIC_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/api
+NEXT_PUBLIC_BACKEND_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/api
 ```
+
+> `.env.production` 변경 후 `sudo systemctl restart homepass-frontend`를 실행하세요. Systemd 서비스는 `EnvironmentFile=/home/ec2-user/homepass/homepass-front/.env.production`을 참조합니다.
 
 ### Scraper 환경 변수 (.env)
 ```bash

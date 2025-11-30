@@ -14,7 +14,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     
     # CORS 설정
-    CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:3001"]
+    CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com",
+    ]
     
     # 네이버 클라우드 플랫폼 (주변 시설 검색용)
     NAVER_CLIENT_ID: str = ""
