@@ -94,7 +94,7 @@ FEED_EXPORT_ENCODING = "utf-8"
 # }
 
 # 2. 파일 다운로드 폴더 지정 (예: 'downloads')
-FILES_STORE = 'downloads'
+#FILES_STORE = 'downloads'
 
 
 
@@ -105,9 +105,7 @@ USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 # homepass_scraper/homepass_scraper/settings.py
 
 ITEM_PIPELINES = {
-   # 'scrapy.pipelines.files.FilesPipeline': 1, # (주석 처리)
-   'homepass_scraper.pipelines.HomepassScraperPipeline': 1, # (새 파이프라인으로 변경)
-   'homepass_scraper.pipelines.MySQLAnnouncementsPipeline': 500, # MySQL 적재 파이프라인
+   'homepass_scraper.pipelines.MySQLAnnouncementsPipeline': 500,
 }
 
 FEEDS = {

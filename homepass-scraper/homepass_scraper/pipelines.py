@@ -208,10 +208,13 @@ class MySQLAnnouncementsPipeline:
                 self.conn.close()
 
     def process_item(self, item: Dict[str, Any], spider):
-        # 타이틀 필터: '공고'가 없는 제목은 DB 적재 스킵
+        # 타이틀 필터: 특정 키워드가 없으면 건너뜀
         title = (item.get("title") or "").strip()
-        if "공고" not in title:
-            spider.logger.info(f"Skip DB insert: title does not contain '공고' | title='{title}'")
+        allowed_keywords = ("공고", "청년안심주택")
+        if not any(keyword in title for keyword in allowed_keywords):
+            spider.logger.info(
+                f"Skip DB insert: title does not contain {allowed_keywords} | title='{title}'"
+            )
             return item
 
         parsed_payload = self._as_dict(item.get("parsed_content"))
@@ -235,9 +238,7 @@ class MySQLAnnouncementsPipeline:
 
         post_date = self._parse_date(pick_value("post_date") or item.get("post_date"))
         application_end_date = self._parse_date(pick_value("apply_date") or item.get("apply_date"))
-        original_pdf_url = self._safe_first(item.get("file_urls", [])) or self._sanitize_str(
-            pick_value("original_pdf_url")
-        )
+        original_pdf_url = self._sanitize_str(pick_value("original_pdf_url"))
         application_link = self._sanitize_str(pick_value("application_link"))
         homepage_link = self._sanitize_str(pick_value("homepage_link"))
 
@@ -270,6 +271,7 @@ class MySQLAnnouncementsPipeline:
         is_customized_flag = self._normalize_bool(pick_value("is_customized"))
         image_urls = self._ensure_list_of_str(pick_value("image_urls"))
         schedules = self._ensure_list_of_dict(pick_value("schedules"))
+        listing_number = self._normalize_int(item.get("listing_number"))
 
         for key, value in (
             ("min_deposit", min_deposit),
@@ -318,9 +320,10 @@ class MySQLAnnouncementsPipeline:
                 commute_time,
                 is_customized,
                 image_urls,
-                schedules
+                schedules,
+                listing_number
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 source_organization = VALUES(source_organization),
                 source_url = VALUES(source_url),
@@ -342,7 +345,8 @@ class MySQLAnnouncementsPipeline:
                 commute_time = VALUES(commute_time),
                 is_customized = VALUES(is_customized),
                 image_urls = VALUES(image_urls),
-                schedules = VALUES(schedules)
+                schedules = VALUES(schedules),
+                listing_number = VALUES(listing_number)
         """
         params = (
             title,
@@ -367,6 +371,7 @@ class MySQLAnnouncementsPipeline:
             is_customized_db,
             image_urls_json,
             schedules_json,
+            listing_number,
         )
 
         try:
