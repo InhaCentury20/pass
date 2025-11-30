@@ -20,6 +20,7 @@ from .announcement import (
     AnnouncementSchema,
     AnnouncementDetailSchema,
     AnnouncementListResponse,
+    AnnouncementScrapeRequest,
 )
 from .application import (
     ApplicationItemSchema,
