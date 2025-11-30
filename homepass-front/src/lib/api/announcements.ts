@@ -50,7 +50,7 @@ export const getAnnouncements = async (
           value !== '' &&
           !['exclude_past', 'within_days', 'order_by', 'order'].includes(key)
         ) {
-          relaxedParams[key] = value;
+          relaxedParams[key] = value as AnnouncementQueryParams[typeof key];
         }
       }
 
