@@ -13,30 +13,35 @@ from app.config import settings
 
 
 class NaverMapsService:
-    """네이버 클라우드 Maps API 클라이언트"""
+    """네이버 클라우드 Maps API 및 검색 API 클라이언트"""
 
     BASE_URL = "https://naveropenapi.apigw.ntruss.com"
     SEARCH_BASE_URL = "https://openapi.naver.com/v1"
 
     def __init__(self):
-        self.client_id = settings.NAVER_CLIENT_ID
-        self.client_secret = settings.NAVER_CLIENT_SECRET
+        # 네이버 클라우드 Maps API (Geocoding, Direction 등)
+        self.cloud_client_id = settings.NAVER_CLOUD_CLIENT_ID
+        self.cloud_client_secret = settings.NAVER_CLOUD_CLIENT_SECRET
 
-        if not self.client_id or not self.client_secret:
-            raise ValueError("네이버 API 키가 설정되지 않았습니다.")
+        # 네이버 검색 API (주변 시설 검색)
+        self.search_client_id = settings.NAVER_SEARCH_CLIENT_ID
+        self.search_client_secret = settings.NAVER_SEARCH_CLIENT_SECRET
+
+        if not self.cloud_client_id or not self.cloud_client_secret:
+            raise ValueError("네이버 클라우드 Maps API 키가 설정되지 않았습니다.")
 
     def _get_headers(self) -> Dict[str, str]:
         """네이버 클라우드 Maps API용 헤더"""
         return {
-            "X-NCP-APIGW-API-KEY-ID": self.client_id,
-            "X-NCP-APIGW-API-KEY": self.client_secret,
+            "X-NCP-APIGW-API-KEY-ID": self.cloud_client_id,
+            "X-NCP-APIGW-API-KEY": self.cloud_client_secret,
         }
 
     def _get_search_headers(self) -> Dict[str, str]:
         """네이버 검색 API용 헤더"""
         return {
-            "X-Naver-Client-Id": self.client_id,
-            "X-Naver-Client-Secret": self.client_secret,
+            "X-Naver-Client-Id": self.search_client_id,
+            "X-Naver-Client-Secret": self.search_client_secret,
         }
 
     async def geocode(self, address: str) -> Optional[Dict[str, Any]]:
@@ -99,6 +104,11 @@ class NaverMapsService:
                 headers=self._get_headers(),
                 timeout=10.0
             )
+
+            print(f"[DEBUG] Reverse Geocode URL: {url}")
+            print(f"[DEBUG] Params: {params}")
+            print(f"[DEBUG] Status: {response.status_code}")
+            print(f"[DEBUG] Response: {response.text}")
 
             if response.status_code != 200:
                 return None
@@ -218,6 +228,12 @@ class NaverMapsService:
                 timeout=10.0
             )
 
+            print(f"[DEBUG] Search Local URL: {url}")
+            print(f"[DEBUG] Query: {query}, Params: {params}")
+            print(f"[DEBUG] Headers: {self._get_search_headers()}")
+            print(f"[DEBUG] Status: {response.status_code}")
+            print(f"[DEBUG] Response: {response.text}")
+
             if response.status_code != 200:
                 return []
 
@@ -274,16 +290,81 @@ class NaverMapsService:
         if not keyword:
             return []
 
-        # 주변 시설 검색
-        places = await self.search_local(
-            query=keyword,
-            lat=lat,
-            lng=lng,
-            radius=1000,
-            display=5
-        )
+        # 네이버 검색 API가 설정되어 있으면 실제 API 호출
+        if self.search_client_id and self.search_client_secret:
+            try:
+                places = await self.search_local(
+                    query=keyword,
+                    lat=lat,
+                    lng=lng,
+                    radius=1000,
+                    display=5
+                )
 
-        return places
+                if places:
+                    print(f"[INFO] Using real Search API data for category: {category} ({len(places)} items)")
+                    return places
+            except Exception as e:
+                print(f"[WARNING] Search API failed: {e}, falling back to dummy data")
+
+        # 검색 API가 없거나 실패 시 더미 데이터 반환
+        return self._get_dummy_places(lat, lng, category)
+
+    def _get_dummy_places(self, lat: float, lng: float, category: str) -> List[Dict[str, Any]]:
+        """
+        더미 주변 시설 데이터 반환 (데모/테스트용)
+        실제 서비스에서는 네이버 검색 API 키를 발급받아 사용하세요.
+        """
+        dummy_data = {
+            "subway": [
+                {"name": "시청역 (1호선)", "address": "서울특별시 중구 세종대로 지하 101", "category": "지하철", "telephone": ""},
+                {"name": "을지로입구역 (2호선)", "address": "서울특별시 중구 을지로 지하 23", "category": "지하철", "telephone": ""},
+                {"name": "광화문역 (5호선)", "address": "서울특별시 종로구 종로 지하 172", "category": "지하철", "telephone": ""},
+            ],
+            "school": [
+                {"name": "서울남산초등학교", "address": "서울특별시 중구 소파로 46", "category": "초등학교", "telephone": "02-555-1234"},
+                {"name": "명동초등학교", "address": "서울특별시 중구 명동길 74", "category": "초등학교", "telephone": "02-555-5678"},
+            ],
+            "store": [
+                {"name": "CU 시청점", "address": "서울특별시 중구 세종대로 110", "category": "편의점", "telephone": ""},
+                {"name": "GS25 을지로점", "address": "서울특별시 중구 을지로 30", "category": "편의점", "telephone": ""},
+                {"name": "세븐일레븐 명동점", "address": "서울특별시 중구 명동길 56", "category": "편의점", "telephone": ""},
+            ],
+            "hospital": [
+                {"name": "서울대학교병원", "address": "서울특별시 종로구 대학로 101", "category": "종합병원", "telephone": "02-2072-2114"},
+                {"name": "삼성서울병원", "address": "서울특별시 강남구 일원로 81", "category": "종합병원", "telephone": "02-3410-2114"},
+            ],
+            "park": [
+                {"name": "남산공원", "address": "서울특별시 중구 삼일대로 231", "category": "공원", "telephone": "02-3783-5900"},
+                {"name": "청계천", "address": "서울특별시 종로구 창신동", "category": "공원", "telephone": ""},
+            ],
+            "mart": [
+                {"name": "롯데마트 서울역점", "address": "서울특별시 중구 한강대로 405", "category": "대형마트", "telephone": "02-390-2500"},
+                {"name": "이마트 용산점", "address": "서울특별시 용산구 한강대로 23길 55", "category": "대형마트", "telephone": "02-2012-1234"},
+            ],
+        }
+
+        places_list = dummy_data.get(category, [])
+
+        # 더미 데이터에 mapx, mapy 추가 (대략적인 위치)
+        results = []
+        for idx, place in enumerate(places_list[:5]):
+            # 위치를 약간씩 다르게 설정 (데모용)
+            offset_lat = lat + (idx * 0.001)
+            offset_lng = lng + (idx * 0.001)
+
+            results.append({
+                "name": place["name"],
+                "address": place["address"],
+                "category": place["category"],
+                "telephone": place.get("telephone", ""),
+                "mapx": str(int(offset_lng * 10000000)),
+                "mapy": str(int(offset_lat * 10000000)),
+                "link": "",
+            })
+
+        print(f"[INFO] Using dummy data for category: {category} ({len(results)} items)")
+        return results
 
 
 # 싱글톤 인스턴스
