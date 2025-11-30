@@ -41,7 +41,9 @@ export const getAnnouncements = async (
 
     // 백엔드가 특정 필터를 지원하지 않을 때 500이 발생 → 완화 요청 후 프론트에서 후처리
     if (status === 500) {
-      const relaxedParams: AnnouncementQueryParams = {};
+      type Defined<T> = Exclude<T, undefined>;
+      const relaxedParams: Partial<{ [K in keyof AnnouncementQueryParams]: Defined<AnnouncementQueryParams[K]> }> =
+        {};
       for (const key of Object.keys(params) as (keyof AnnouncementQueryParams)[]) {
         const value = params[key];
         if (
@@ -50,7 +52,7 @@ export const getAnnouncements = async (
           value !== '' &&
           !['exclude_past', 'within_days', 'order_by', 'order'].includes(key)
         ) {
-          relaxedParams[key] = value as AnnouncementQueryParams[typeof key];
+          relaxedParams[key] = value as Defined<AnnouncementQueryParams[typeof key]>;
         }
       }
 
