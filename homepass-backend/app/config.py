@@ -20,9 +20,13 @@ class Settings(BaseSettings):
         "http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com",
     ]
     
-    # 네이버 클라우드 플랫폼 (주변 시설 검색용)
-    NAVER_CLIENT_ID: str = ""
-    NAVER_CLIENT_SECRET: str = ""
+    # 네이버 클라우드 플랫폼 (Maps API - 지도, Geocoding, Direction)
+    NAVER_CLOUD_CLIENT_ID: str = ""
+    NAVER_CLOUD_CLIENT_SECRET: str = ""
+
+    # 네이버 개발자센터 (Search API - 주변 시설 검색)
+    NAVER_SEARCH_CLIENT_ID: str = ""
+    NAVER_SEARCH_CLIENT_SECRET: str = ""
     
     # 로깅 설정
     LOG_LEVEL: str = "INFO"
