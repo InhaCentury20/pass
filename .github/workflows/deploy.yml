@@ -92,67 +92,46 @@ jobs:
             homepass-front homepass-backend homepass-scraper \
             ${USER}@${HOST}:/home/${USER}/homepass/
 
-          # Deploy on EC2
+          # Deploy on EC2 with environment variables
           ssh -i private_key.pem -o StrictHostKeyChecking=no ${USER}@${HOST} \
-            "NAVER_CLOUD_CLIENT_ID='${NAVER_CLOUD_CLIENT_ID}' \
-             NAVER_CLOUD_CLIENT_SECRET='${NAVER_CLOUD_CLIENT_SECRET}' \
-             NAVER_SEARCH_CLIENT_ID='${NAVER_SEARCH_CLIENT_ID}' \
-             NAVER_SEARCH_CLIENT_SECRET='${NAVER_SEARCH_CLIENT_SECRET}' \
-             NAVER_MAP_CLIENT_ID='${NAVER_MAP_CLIENT_ID}' \
-             bash -s" << 'ENDSSH'
-            cd /home/ec2-user/homepass
-
-            # Stop existing services
-            sudo systemctl stop homepass-frontend || true
-            sudo systemctl stop homepass-backend || true
-            sudo systemctl stop homepass-scraper || true
-
-            # Create backend .env file with secrets
-            cd homepass-backend
-            cat > .env << EOF
-DATABASE_URL=mysql+pymysql://admin:century20%21@century20-rds.clqcgo84gd3x.us-west-2.rds.amazonaws.com:3306/century20
-JWT_SECRET_KEY=임의의_난수값
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-LOG_LEVEL=INFO
-NAVER_CLOUD_CLIENT_ID=$NAVER_CLOUD_CLIENT_ID
-NAVER_CLOUD_CLIENT_SECRET=$NAVER_CLOUD_CLIENT_SECRET
-NAVER_SEARCH_CLIENT_ID=$NAVER_SEARCH_CLIENT_ID
-NAVER_SEARCH_CLIENT_SECRET=$NAVER_SEARCH_CLIENT_SECRET
-EOF
-            cd ..
-
-            # Create frontend .env.local file
-            cd homepass-front
-            cat > .env.local << EOF
-BACKEND_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com
-NEXT_PUBLIC_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com
-NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=$NAVER_MAP_CLIENT_ID
-EOF
-            npm ci
-            npm run build
-            cd ..
-
-            # Update backend
-            cd homepass-backend
-            source venv/bin/activate || python3 -m venv venv && source venv/bin/activate
-            pip install -r requirements.txt
-            cd ..
-
-            # Update scraper
-            cd homepass-scraper
-            source venv/bin/activate || python3 -m venv venv && source venv/bin/activate
-            pip install -r requirements.txt
-            cd ..
-
-            # Restart services
-            sudo systemctl start homepass-backend
-            sudo systemctl start homepass-frontend
-            sudo systemctl start homepass-scraper
-
-            # Check service status
-            sudo systemctl status homepass-backend --no-pager
-            sudo systemctl status homepass-frontend --no-pager
-          ENDSSH
+            "export NAVER_CLOUD_CLIENT_ID='${NAVER_CLOUD_CLIENT_ID}' && \
+             export NAVER_CLOUD_CLIENT_SECRET='${NAVER_CLOUD_CLIENT_SECRET}' && \
+             export NAVER_SEARCH_CLIENT_ID='${NAVER_SEARCH_CLIENT_ID}' && \
+             export NAVER_SEARCH_CLIENT_SECRET='${NAVER_SEARCH_CLIENT_SECRET}' && \
+             export NAVER_MAP_CLIENT_ID='${NAVER_MAP_CLIENT_ID}' && \
+             cd /home/ec2-user/homepass && \
+             sudo systemctl stop homepass-frontend || true && \
+             sudo systemctl stop homepass-backend || true && \
+             sudo systemctl stop homepass-scraper || true && \
+             cd homepass-backend && \
+             echo 'DATABASE_URL=mysql+pymysql://admin:century20%21@century20-rds.clqcgo84gd3x.us-west-2.rds.amazonaws.com:3306/century20' > .env && \
+             echo 'JWT_SECRET_KEY=change-this-to-secure-random-string' >> .env && \
+             echo 'JWT_ALGORITHM=HS256' >> .env && \
+             echo 'ACCESS_TOKEN_EXPIRE_MINUTES=1440' >> .env && \
+             echo 'LOG_LEVEL=INFO' >> .env && \
+             echo \"NAVER_CLOUD_CLIENT_ID=\$NAVER_CLOUD_CLIENT_ID\" >> .env && \
+             echo \"NAVER_CLOUD_CLIENT_SECRET=\$NAVER_CLOUD_CLIENT_SECRET\" >> .env && \
+             echo \"NAVER_SEARCH_CLIENT_ID=\$NAVER_SEARCH_CLIENT_ID\" >> .env && \
+             echo \"NAVER_SEARCH_CLIENT_SECRET=\$NAVER_SEARCH_CLIENT_SECRET\" >> .env && \
+             cd ../homepass-front && \
+             echo 'BACKEND_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com' > .env.local && \
+             echo 'NEXT_PUBLIC_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com' >> .env.local && \
+             echo \"NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=\$NAVER_MAP_CLIENT_ID\" >> .env.local && \
+             npm ci && \
+             npm run build && \
+             cd .. && \
+             cd homepass-backend && \
+             (test -d venv || python3 -m venv venv) && \
+             venv/bin/pip install -r requirements.txt && \
+             cd .. && \
+             cd homepass-scraper && \
+             (test -d venv || python3 -m venv venv) && \
+             venv/bin/pip install -r requirements.txt && \
+             cd .. && \
+             sudo systemctl start homepass-backend && \
+             sudo systemctl start homepass-frontend && \
+             sudo systemctl start homepass-scraper && \
+             sudo systemctl status homepass-backend --no-pager && \
+             sudo systemctl status homepass-frontend --no-pager"
 
           rm -f private_key.pem
