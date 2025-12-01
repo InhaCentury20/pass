@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getNearbyPlaces } from '@/lib/api/places';
-import type { Place } from '@/types/api';
+import type { Place, CommuteInfo } from '@/types/api';
 
 // Naver Maps API 타입 정의
 interface NaverMapsAPI {
@@ -12,6 +12,7 @@ interface NaverMapsAPI {
     Map: new (element: HTMLElement, options: MapOptions) => NaverMap;
     Marker: new (options: MarkerOptions) => NaverMarker;
     InfoWindow: new (options: InfoWindowOptions) => NaverInfoWindow;
+    Polyline: new (options: PolylineOptions) => NaverPolyline;
     Point: new (x: number, y: number) => NaverPoint;
     Position: {
       TOP_RIGHT: number;
@@ -36,6 +37,10 @@ interface NaverInfoWindow {
   getMap: () => NaverMap | null;
   close: () => void;
   open: (map: NaverMap, marker: NaverMarker) => void;
+}
+
+interface NaverPolyline {
+  setMap: (map: NaverMap | null) => void;
 }
 
 // Naver Point instance (opaque type)
@@ -64,6 +69,15 @@ interface InfoWindowOptions {
   content: string;
 }
 
+interface PolylineOptions {
+  map: NaverMap;
+  path: NaverLatLng[];
+  strokeColor?: string;
+  strokeWeight?: number;
+  strokeOpacity?: number;
+  strokeStyle?: string;
+}
+
 declare global {
   interface Window {
     naver?: NaverMapsAPI;
@@ -75,6 +89,7 @@ interface NaverMapProps {
   longitude: number;
   selectedCategory?: string;
   onCategoryChange?: (category: string) => void;
+  commuteInfo?: CommuteInfo | null;
 }
 
 // 네이버 Maps API 스크립트를 동적으로 로드
@@ -98,10 +113,12 @@ export default function NaverMap({
   latitude,
   longitude,
   selectedCategory = 'subway',
+  commuteInfo = null,
 }: NaverMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<NaverMap | null>(null);
   const markersRef = useRef<NaverMarker[]>([]);
+  const polylineRef = useRef<NaverPolyline | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
 
@@ -254,6 +271,42 @@ export default function NaverMap({
       newMarkers.forEach((marker) => marker.setMap(null));
     };
   }, [map, nearbyData, selectedCategory, latitude, longitude]);
+
+  // 출퇴근 경로 그리기
+  useEffect(() => {
+    if (!map || !commuteInfo?.path || !window.naver) return;
+
+    const naver = window.naver;
+
+    // 기존 경로선 제거
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+    }
+
+    // path 좌표를 NaverLatLng 배열로 변환
+    const pathCoords = commuteInfo.path.map(
+      ([lat, lng]) => new naver.maps.LatLng(lat, lng)
+    );
+
+    // 경로선 생성
+    const polyline = new naver.maps.Polyline({
+      map,
+      path: pathCoords,
+      strokeColor: '#5347ec', // 보라색 계열
+      strokeWeight: 5,
+      strokeOpacity: 0.8,
+      strokeStyle: 'solid',
+    });
+
+    polylineRef.current = polyline;
+
+    // Cleanup: 컴포넌트 언마운트 시 또는 의존성 변경 시 경로선 제거
+    return () => {
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+      }
+    };
+  }, [map, commuteInfo]);
 
   if (scriptError) {
     return (

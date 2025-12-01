@@ -333,6 +333,7 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
               latitude={announcement.latitude}
               longitude={announcement.longitude}
               selectedCategory={selectedCategory}
+              commuteInfo={commuteInfo}
             />
           ) : (
             <div className="aspect-video bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 rounded-xl flex items-center justify-center border-2 border-dashed border-blue-300 text-gray-900 font-semibold">
