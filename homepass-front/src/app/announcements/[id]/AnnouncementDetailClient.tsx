@@ -394,6 +394,9 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
             <span>🏪</span> 주변 시설
           </h2>
+          <p className="text-sm font-semibold text-gray-900 mb-4">
+            반경 10km 이내 시설을 가까운 순서대로 보여드립니다.
+          </p>
           <div className="flex gap-2 mb-6 flex-wrap">
             {[
               { id: 'subway', label: '🚇 지하철역' },
