@@ -119,6 +119,7 @@ export default function NaverMap({
   const [map, setMap] = useState<NaverMap | null>(null);
   const markersRef = useRef<NaverMarker[]>([]);
   const polylineRef = useRef<NaverPolyline | null>(null);
+  const commuteMarkersRef = useRef<NaverMarker[]>([]); // 출발지/도착지 마커
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [scriptError, setScriptError] = useState<string | null>(null);
 
@@ -278,10 +279,12 @@ export default function NaverMap({
 
     const naver = window.naver;
 
-    // 기존 경로선 제거
+    // 기존 경로선 및 마커 제거
     if (polylineRef.current) {
       polylineRef.current.setMap(null);
     }
+    commuteMarkersRef.current.forEach((marker) => marker.setMap(null));
+    commuteMarkersRef.current = [];
 
     // path 좌표를 NaverLatLng 배열로 변환
     const pathCoords = commuteInfo.path.map(
@@ -300,11 +303,110 @@ export default function NaverMap({
 
     polylineRef.current = polyline;
 
-    // Cleanup: 컴포넌트 언마운트 시 또는 의존성 변경 시 경로선 제거
+    // 출발지 마커 (경로의 첫 번째 지점)
+    if (commuteInfo.path.length > 0) {
+      const [startLat, startLng] = commuteInfo.path[0];
+      const startMarker = new naver.maps.Marker({
+        position: new naver.maps.LatLng(startLat, startLng),
+        map,
+        title: '출발지',
+        icon: {
+          content: `
+            <div style="
+              position: relative;
+              width: 60px;
+              height: 60px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            ">
+              <div style="
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                border: 3px solid white;
+                border-radius: 50%;
+                width: 45px;
+                height: 45px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+                font-size: 22px;
+              ">🏁</div>
+              <div style="
+                margin-top: 2px;
+                background: white;
+                color: #059669;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 2px 8px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                white-space: nowrap;
+              ">출발</div>
+            </div>
+          `,
+          anchor: new naver.maps.Point(30, 30),
+        },
+      });
+      commuteMarkersRef.current.push(startMarker);
+    }
+
+    // 도착지 마커 (경로의 마지막 지점)
+    if (commuteInfo.path.length > 1) {
+      const [endLat, endLng] = commuteInfo.path[commuteInfo.path.length - 1];
+      const endMarker = new naver.maps.Marker({
+        position: new naver.maps.LatLng(endLat, endLng),
+        map,
+        title: '도착지',
+        icon: {
+          content: `
+            <div style="
+              position: relative;
+              width: 60px;
+              height: 60px;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            ">
+              <div style="
+                background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+                border: 3px solid white;
+                border-radius: 50%;
+                width: 45px;
+                height: 45px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+                font-size: 22px;
+              ">🎯</div>
+              <div style="
+                margin-top: 2px;
+                background: white;
+                color: #dc2626;
+                font-size: 11px;
+                font-weight: bold;
+                padding: 2px 8px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                white-space: nowrap;
+              ">도착</div>
+            </div>
+          `,
+          anchor: new naver.maps.Point(30, 30),
+        },
+      });
+      commuteMarkersRef.current.push(endMarker);
+    }
+
+    // Cleanup: 컴포넌트 언마운트 시 또는 의존성 변경 시 경로선 및 마커 제거
     return () => {
       if (polylineRef.current) {
         polylineRef.current.setMap(null);
       }
+      commuteMarkersRef.current.forEach((marker) => marker.setMap(null));
     };
   }, [map, commuteInfo]);
 
