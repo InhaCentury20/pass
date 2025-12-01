@@ -138,7 +138,7 @@ export default function SettingsPage() {
         : '',
       total_payment_amount:
         subscription?.total_payment_amount !== undefined && subscription.total_payment_amount !== null
-          ? String(subscription.total_payment_amount)
+          ? String(Math.round(subscription.total_payment_amount / 10_000))
           : '',
       income_level_percent:
         subscription?.income_level_percent !== undefined && subscription.income_level_percent !== null
@@ -152,10 +152,10 @@ export default function SettingsPage() {
       housingTypesText: preference?.housing_types?.join(', ') ?? '',
       min_area: preference?.min_area !== undefined && preference?.min_area !== null ? String(preference.min_area) : '',
       max_area: preference?.max_area !== undefined && preference?.max_area !== null ? String(preference.max_area) : '',
-      max_deposit:
-        preference?.max_deposit !== undefined && preference?.max_deposit !== null
-          ? String(preference.max_deposit)
-          : '',
+    max_deposit:
+      preference?.max_deposit !== undefined && preference?.max_deposit !== null
+        ? String(Math.round(preference.max_deposit / 10_000))
+        : '',
       max_monthly_rent:
         preference?.max_monthly_rent !== undefined && preference?.max_monthly_rent !== null
           ? String(preference.max_monthly_rent)
@@ -248,7 +248,7 @@ export default function SettingsPage() {
       join_date: subscriptionForm.join_date || undefined,
       payment_count: subscriptionForm.payment_count ? Number(subscriptionForm.payment_count) : undefined,
       total_payment_amount: subscriptionForm.total_payment_amount
-        ? Number(subscriptionForm.total_payment_amount)
+        ? Number(subscriptionForm.total_payment_amount) * 10_000
         : undefined,
       is_household_head:
         subscriptionForm.is_household_head === ''
@@ -291,7 +291,7 @@ export default function SettingsPage() {
         : undefined,
       min_area: preferenceForm.min_area ? Number(preferenceForm.min_area) : undefined,
       max_area: preferenceForm.max_area ? Number(preferenceForm.max_area) : undefined,
-      max_deposit: preferenceForm.max_deposit ? Number(preferenceForm.max_deposit) : undefined,
+      max_deposit: preferenceForm.max_deposit ? Number(preferenceForm.max_deposit) * 10_000 : undefined,
       max_monthly_rent: preferenceForm.max_monthly_rent ? Number(preferenceForm.max_monthly_rent) : undefined,
       commute_base_address: preferenceForm.commute_base_address.trim() || undefined,
       max_commute_time_minutes: preferenceForm.max_commute_time_minutes
@@ -578,12 +578,12 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-semibold text-gray-900 mb-2">총 납입 금액 (원)</label>
+                        <label className="block text-sm font-semibold text-gray-900 mb-2">총 납입 금액 (만원)</label>
                         <input
                           type="number"
                           value={subscriptionForm.total_payment_amount}
                           onChange={handleSubscriptionInputChange('total_payment_amount')}
-                          placeholder="예: 2400000"
+                          placeholder="예: 240 (만원)"
                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 transition-all"
                         />
                       </div>
@@ -672,7 +672,7 @@ export default function SettingsPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-gray-900 mb-2">최대 보증금 (원)</label>
+                          <label className="block text-sm font-semibold text-gray-900 mb-2">최대 보증금 (만원)</label>
                           <input
                             type="number"
                             value={preferenceForm.max_deposit}
