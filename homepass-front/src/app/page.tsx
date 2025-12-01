@@ -594,7 +594,7 @@ export default function Home() {
                       <div className="flex flex-wrap gap-2">
                         {announcement.dday !== undefined && (
                           <Badge variant="danger" icon="⏰">
-                            {announcement.dday >= 0 ? `D-${announcement.dday}` : '종료됨'}
+                            {announcement.dday !== null && announcement.dday >= 0 ? `D-${announcement.dday}` : '종료됨'}
                           </Badge>
                         )}
                       </div>
