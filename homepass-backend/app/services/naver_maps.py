@@ -33,8 +33,8 @@ class NaverMapsService:
     def _get_headers(self) -> Dict[str, str]:
         """네이버 클라우드 Maps API용 헤더"""
         return {
-            "X-NCP-APIGW-API-KEY-ID": self.cloud_client_id,
-            "X-NCP-APIGW-API-KEY": self.cloud_client_secret,
+            "x-ncp-apigw-api-key-id": self.cloud_client_id,
+            "x-ncp-apigw-api-key": self.cloud_client_secret,
         }
 
     def _get_search_headers(self) -> Dict[str, str]:
