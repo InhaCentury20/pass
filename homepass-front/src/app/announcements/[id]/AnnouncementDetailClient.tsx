@@ -366,7 +366,7 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
                 emoji="🏠"
               />
               <InfoRow
-                label="도착지"
+                label="직장"
                 value={commuteInfo.end_address}
                 emoji="📍"
               />
