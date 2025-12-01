@@ -212,10 +212,21 @@ class NaverMapsService:
         Returns:
             주변 시설 목록 [{"name": str, "address": str, "distance": str, ...}]
         """
+        # 1. Reverse Geocoding으로 지역명 추출
+        location_info = await self.reverse_geocode(lat, lng)
+        region_name = ""
+        if location_info and location_info.get("region"):
+            region = location_info["region"]
+            # 시/도, 구/군, 동 정보를 조합
+            region_name = f"{region.get('area1', '')} {region.get('area2', '')} {region.get('area3', '')}".strip()
+
+        # 검색 쿼리에 지역명 추가
+        search_query = f"{region_name} {query}".strip() if region_name else query
+
         url = f"{self.SEARCH_BASE_URL}/search/local.json"
         params = {
-            "query": query,
-            "display": min(display, 5),
+            "query": search_query,
+            "display": 20,  # 더 많이 가져와서 거리순 필터링
             "start": 1,
             "sort": "random"
         }
@@ -229,35 +240,72 @@ class NaverMapsService:
             )
 
             print(f"[DEBUG] Search Local URL: {url}")
-            print(f"[DEBUG] Query: {query}, Params: {params}")
-            print(f"[DEBUG] Headers: {self._get_search_headers()}")
+            print(f"[DEBUG] Query: {search_query}, Params: {params}")
             print(f"[DEBUG] Status: {response.status_code}")
-            print(f"[DEBUG] Response: {response.text}")
+            print(f"[DEBUG] Response: {response.text[:500]}")
 
             if response.status_code != 200:
-                return []
+                print(f"[ERROR] Search API failed with status {response.status_code}")
+                raise Exception(f"Search API returned {response.status_code}")
 
             data = response.json()
             items = data.get("items", [])
 
-            # 결과 가공
+            # 결과 가공 및 거리 계산
             results = []
             for item in items:
-                # HTML 태그 제거
-                name = item.get("title", "").replace("<b>", "").replace("</b>", "")
-                address = item.get("roadAddress") or item.get("address", "")
+                mapx = item.get("mapx", "")
+                mapy = item.get("mapy", "")
 
-                results.append({
-                    "name": name,
-                    "address": address,
-                    "category": item.get("category", ""),
-                    "telephone": item.get("telephone", ""),
-                    "mapx": item.get("mapx", ""),  # 네이버 좌표계 (변환 필요)
-                    "mapy": item.get("mapy", ""),
-                    "link": item.get("link", ""),
-                })
+                if not mapx or not mapy:
+                    continue
 
-            return results
+                # 네이버 좌표를 WGS84로 변환 (간단 근사)
+                item_lng = float(mapx) / 10000000
+                item_lat = float(mapy) / 10000000
+
+                # 거리 계산 (Haversine formula - 단순 근사)
+                distance = self._calculate_distance(lat, lng, item_lat, item_lng)
+
+                # 반경 내에 있는 것만 포함
+                if distance <= radius:
+                    # HTML 태그 제거
+                    name = item.get("title", "").replace("<b>", "").replace("</b>", "")
+                    address = item.get("roadAddress") or item.get("address", "")
+
+                    results.append({
+                        "name": name,
+                        "address": address,
+                        "category": item.get("category", ""),
+                        "telephone": item.get("telephone", ""),
+                        "mapx": mapx,
+                        "mapy": mapy,
+                        "link": item.get("link", ""),
+                        "distance": distance,
+                    })
+
+            # 거리순 정렬 후 상위 N개만 반환
+            results.sort(key=lambda x: x["distance"])
+            return results[:display]
+
+    def _calculate_distance(self, lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+        """
+        두 좌표 간 거리 계산 (미터 단위)
+        Haversine formula 사용
+        """
+        from math import radians, sin, cos, sqrt, atan2
+
+        R = 6371000  # 지구 반지름 (미터)
+
+        lat1_rad = radians(lat1)
+        lat2_rad = radians(lat2)
+        delta_lat = radians(lat2 - lat1)
+        delta_lng = radians(lng2 - lng1)
+
+        a = sin(delta_lat / 2) ** 2 + cos(lat1_rad) * cos(lat2_rad) * sin(delta_lng / 2) ** 2
+        c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+        return R * c
 
     async def get_nearby_places(
         self,
@@ -290,25 +338,21 @@ class NaverMapsService:
         if not keyword:
             return []
 
-        # 네이버 검색 API가 설정되어 있으면 실제 API 호출
-        if self.search_client_id and self.search_client_secret:
-            try:
-                places = await self.search_local(
-                    query=keyword,
-                    lat=lat,
-                    lng=lng,
-                    radius=1000,
-                    display=5
-                )
+        # 네이버 검색 API가 설정되어 있지 않으면 에러
+        if not self.search_client_id or not self.search_client_secret:
+            raise ValueError("네이버 검색 API 키가 설정되지 않았습니다.")
 
-                if places:
-                    print(f"[INFO] Using real Search API data for category: {category} ({len(places)} items)")
-                    return places
-            except Exception as e:
-                print(f"[WARNING] Search API failed: {e}, falling back to dummy data")
+        # 실제 API 호출
+        places = await self.search_local(
+            query=keyword,
+            lat=lat,
+            lng=lng,
+            radius=1000,
+            display=5
+        )
 
-        # 검색 API가 없거나 실패 시 더미 데이터 반환
-        return self._get_dummy_places(lat, lng, category)
+        print(f"[INFO] Search API returned {len(places)} items for category: {category}")
+        return places
 
     def _get_dummy_places(self, lat: float, lng: float, category: str) -> List[Dict[str, Any]]:
         """
