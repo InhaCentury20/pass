@@ -31,6 +31,8 @@ class Announcement(Base):
     latitude = Column(Numeric(10, 8), nullable=True)
     longitude = Column(Numeric(11, 8), nullable=True)
     application_end_date = Column(DateTime, nullable=True)
+    application_link = Column(String(2048), nullable=True)
+    homepage_link = Column(String(2048), nullable=True)
     parsed_content = Column(Text, nullable=True)
     original_pdf_url = Column(String(2048), nullable=True)
     scraped_at = Column(DateTime, nullable=True, server_default=func.current_timestamp())
