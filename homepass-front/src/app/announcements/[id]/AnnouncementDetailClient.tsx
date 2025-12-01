@@ -142,7 +142,7 @@ export function AnnouncementDetailClient({ announcement }: Props) {
   );
 }
 
-type EligibilityValue = string | Record<string, any>;
+type EligibilityValue = string | Record<string, string | number | boolean>;
 
 function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
   const imageUrls =

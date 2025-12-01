@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
 import Card from '@/components/common/Card';
@@ -22,7 +22,7 @@ export default function Home() {
   const [maxDepositFilter, setMaxDepositFilter] = useState<number | null>(null);
   const [maxRentFilter, setMaxRentFilter] = useState<number | null>(null);
   const [preferenceApplied, setPreferenceApplied] = useState(false);
-  const [preferenceInfo, setPreferenceInfo] = useState<Preference | null>(null);
+  const [_preferenceInfo, setPreferenceInfo] = useState<Preference | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -41,7 +41,7 @@ export default function Home() {
     [myBookmarks],
   );
 
-  const fetchAnnouncements = async (signal?: AbortSignal) => {
+  const fetchAnnouncements = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError('');
     try {
@@ -77,7 +77,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showPast]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,7 +85,7 @@ export default function Home() {
     return () => {
       controller.abort();
     };
-  }, [showPast]);
+  }, [showPast, fetchAnnouncements]);
 
   useEffect(() => {
     const loadPreference = async () => {
