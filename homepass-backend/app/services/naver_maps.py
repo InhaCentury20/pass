@@ -15,8 +15,8 @@ from app.config import settings
 class NaverMapsService:
     """네이버 클라우드 Maps API 및 검색 API 클라이언트"""
 
-    BASE_URL = "https://naveropenapi.apigw.ntruss.com"
-    SEARCH_BASE_URL = "https://openapi.naver.com/v1"
+    BASE_URL = "https://maps.apigw.ntruss.com"  # Naver Cloud Maps API
+    SEARCH_BASE_URL = "https://openapi.naver.com/v1"  # Naver Search API
 
     def __init__(self):
         # 네이버 클라우드 Maps API (Geocoding, Direction 등)
