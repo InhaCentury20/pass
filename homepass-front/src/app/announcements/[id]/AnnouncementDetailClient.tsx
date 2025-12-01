@@ -94,7 +94,7 @@ export function AnnouncementDetailClient({ announcement }: Props) {
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             {announcement.title}
           </h1>
-          <div className="flex items-center gap-2 text-gray-600">
+          <div className="flex items-center gap-2 text-gray-900">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
@@ -124,7 +124,7 @@ export function AnnouncementDetailClient({ announcement }: Props) {
                 className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 ${
                   activeTab === tab.id
                     ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg scale-105'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    : 'text-gray-900 hover:bg-gray-100 hover:text-gray-900'
                 }`}
               >
                 <span>{tab.icon}</span>
@@ -288,7 +288,7 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
                     </div>
                     <div className="flex-1 rounded-2xl border border-gray-200/80 bg-white/90 p-4 shadow-sm">
                       <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-                      <p className="text-sm text-gray-600 mt-1">{item.displayDate}</p>
+                      <p className="text-sm text-gray-900 mt-1">{item.displayDate}</p>
                       {item.isRange && item.startText && item.endText && (
                         <p className="text-xs text-gray-500 mt-2">
                           시작 {item.startText} · 종료 {item.endText}
@@ -351,7 +351,7 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
           {isLoadingCommute ? (
             <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
               <div className="animate-spin w-8 h-8 mx-auto mb-2 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-              <div className="text-sm text-gray-600">출퇴근 정보 계산 중...</div>
+              <div className="text-sm text-gray-900 font-semibold">출퇴근 정보 계산 중...</div>
             </div>
           ) : commuteError ? (
             <div className="p-6 bg-yellow-50 rounded-xl border border-yellow-200">
@@ -382,7 +382,7 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
             </>
           ) : (
             <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
-              <div className="text-sm text-gray-600">출퇴근 정보가 없습니다.</div>
+              <div className="text-sm text-gray-900 font-semibold">출퇴근 정보가 없습니다.</div>
             </div>
           )}
         </div>
@@ -455,8 +455,8 @@ function Sidebar({
     (myBookmarks ?? []).some((a) => a.announcement_id === announcement.announcement_id);
 
   return (
-    <div className="space-y-6 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-      <Card gradient className="shadow-xl sticky top-24">
+    <div className="space-y-6 animate-fade-in lg:sticky lg:top-24" style={{ animationDelay: '0.3s' }}>
+      <Card gradient className="shadow-xl">
         <div className="p-6 space-y-4">
           <h3 className="text-xl font-bold flex items-center gap-2">
             <span>💰</span> 임대 금액
@@ -472,7 +472,7 @@ function Sidebar({
             emoji="📅"
           />
           <div className="pt-4 border-t border-gray-200">
-            <p className="text-sm text-gray-500 mb-2 font-medium">예상 평균 금액</p>
+            <p className="text-sm text-gray-900 mb-2 font-semibold">예상 평균 금액</p>
             <div className="p-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl border border-purple-200 text-center">
               <p className="text-xl font-bold text-purple-700">
                 {averageDeposit !== undefined ? `보증금 ${averageDeposit.toLocaleString()}만원` : '보증금 정보 없음'}
