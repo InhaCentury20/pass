@@ -297,41 +297,81 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
               </p>
             </div>
             <div className="space-y-6">
-              {priceGroups.map(([groupName, items]) => (
-                <div key={groupName} className="space-y-3">
+              {priceGroups.map(([groupName, items]) => {
+                const sortedItems = [...items].sort((a, b) => {
+                  const supplyA = (a.supply_type_secondary ?? '').localeCompare(b.supply_type_secondary ?? '');
+                  if (supplyA !== 0) return supplyA;
+                  const typeA = (a.type ?? '').localeCompare(b.type ?? '');
+                  if (typeA !== 0) return typeA;
+                  const ratioA = (a.deposit_ratio ?? '').localeCompare(b.deposit_ratio ?? '');
+                  return ratioA;
+                });
+
+                const supplyCounts = new Map<string, number>();
+                const typeCounts = new Map<string, number>();
+                sortedItems.forEach((option) => {
+                  const supplyKey = option.supply_type_secondary ?? '기타 공급';
+                  supplyCounts.set(supplyKey, (supplyCounts.get(supplyKey) ?? 0) + 1);
+                  const typeKey = `${supplyKey}||${option.type ?? '정보 없음'}`;
+                  typeCounts.set(typeKey, (typeCounts.get(typeKey) ?? 0) + 1);
+                });
+
+                const supplyRendered = new Map<string, number>();
+                const typeRendered = new Map<string, number>();
+
+                return (
+                  <div key={groupName} className="space-y-3">
                   <div className="flex items-center justify-between flex-wrap gap-2">
                     <p className="text-lg font-semibold text-gray-900">{groupName}</p>
-                    <span className="text-xs text-gray-500">구성 {items.length}개</span>
+                        <span className="text-xs text-gray-500">구성 {items.length}개</span>
                   </div>
                   <div className="overflow-x-auto rounded-2xl border border-gray-100">
                     <table className="min-w-full divide-y divide-gray-100 text-sm text-gray-900">
                       <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
                         <tr>
-                          <th className="px-4 py-3 text-left">타입</th>
+                              <th className="px-4 py-3 text-left">공급 구분</th>
+                              <th className="px-4 py-3 text-left">타입</th>
                           <th className="px-4 py-3 text-left">보증금 비율</th>
-                          <th className="px-4 py-3 text-left">공급 구분</th>
                           <th className="px-4 py-3 text-right">보증금</th>
                           <th className="px-4 py-3 text-right">임대료</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
-                        {items.map((option, index) => (
-                          <tr
-                            key={`${groupName}-${option.type ?? 'type'}-${option.deposit_ratio ?? index}`}
-                            className="hover:bg-gray-50/70 transition-colors"
-                          >
-                            <td className="px-4 py-3 font-medium">{option.type ?? '정보 없음'}</td>
-                            <td className="px-4 py-3">{option.deposit_ratio ?? '정보 없음'}</td>
-                            <td className="px-4 py-3">{option.supply_type_secondary ?? '정보 없음'}</td>
-                            <td className="px-4 py-3 text-right">{formatAmount(option.deposit_amount)}</td>
-                            <td className="px-4 py-3 text-right">{formatAmount(option.rent_amount)}</td>
-                          </tr>
-                        ))}
+                          {sortedItems.map((option, index) => {
+                            const supplyKey = option.supply_type_secondary ?? '기타 공급';
+                            const typeKey = `${supplyKey}||${option.type ?? '정보 없음'}`;
+                            const showSupply = (supplyRendered.get(supplyKey) ?? 0) === 0;
+                            const showType = (typeRendered.get(typeKey) ?? 0) === 0;
+                            supplyRendered.set(supplyKey, (supplyRendered.get(supplyKey) ?? 0) + 1);
+                            typeRendered.set(typeKey, (typeRendered.get(typeKey) ?? 0) + 1);
+
+                            return (
+                              <tr
+                                key={`${groupName}-${option.type ?? 'type'}-${option.deposit_ratio ?? index}`}
+                                className="hover:bg-gray-50/70 transition-colors"
+                              >
+                                {showSupply && (
+                                  <td className="px-4 py-3 font-semibold text-gray-900" rowSpan={supplyCounts.get(supplyKey)}>
+                                    {supplyKey}
+                                  </td>
+                                )}
+                                {showType && (
+                                  <td className="px-4 py-3 font-medium" rowSpan={typeCounts.get(typeKey)}>
+                                    {option.type ?? '정보 없음'}
+                                  </td>
+                                )}
+                                <td className="px-4 py-3">{option.deposit_ratio ?? '정보 없음'}</td>
+                                <td className="px-4 py-3 text-right">{formatAmount(option.deposit_amount)}</td>
+                                <td className="px-4 py-3 text-right">{formatAmount(option.rent_amount)}</td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </Card>
