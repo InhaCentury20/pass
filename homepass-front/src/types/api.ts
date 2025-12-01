@@ -62,8 +62,15 @@ export interface Announcement {
   dday?: number;
 }
 
+export type AnnouncementSchedule =
+  | Array<{ date: string; event: string }>
+  | Record<string, string>
+  | string
+  | null
+  | undefined;
+
 export interface AnnouncementDetail extends Announcement {
-  schedules: Array<{ date: string; event: string }>;
+  schedules?: AnnouncementSchedule;
 }
 
 export interface AnnouncementListResponse {

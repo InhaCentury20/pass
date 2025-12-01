@@ -23,6 +23,18 @@ const NaverMap = dynamic(() => import('@/components/common/NaverMap'), {
 
 type TabType = 'info' | 'commute' | 'qa';
 
+const scheduleColorPalette = ['bg-blue-500', 'bg-indigo-500', 'bg-purple-500', 'bg-rose-500', 'bg-emerald-500'];
+
+type NormalizedScheduleItem = {
+  id: string;
+  title: string;
+  displayDate: string;
+  rawDate?: string;
+  startText?: string;
+  endText?: string;
+  isRange: boolean;
+};
+
 interface Props {
   announcement: AnnouncementDetail;
 }
@@ -164,6 +176,10 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
     : '정보 없음';
   const formattedMonthlyRent =
     announcement.monthly_rent != null ? `${announcement.monthly_rent.toLocaleString()}만원` : '정보 없음';
+  const scheduleItems = useMemo(
+    () => normalizeSchedules(announcement.schedules),
+    [announcement.schedules],
+  );
 
   return (
     <div className="space-y-6">
@@ -223,30 +239,42 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
           <h2 className="text-2xl font-bold mb-6 flex items-center gap-2 text-gray-900">
             <span>📅</span> 주요 일정
           </h2>
-          <div className="space-y-3">
-            {announcement.schedules.length > 0 ? (
-              announcement.schedules.map((schedule, idx) => (
-                <div
-                  key={`${schedule.event}-${idx}`}
-                  className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-blue-50/30 rounded-xl border border-gray-200 hover:shadow-md transition-all"
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
-                        idx === 0 ? 'bg-blue-500' : idx === 1 ? 'bg-indigo-500' : 'bg-purple-500'
-                      }`}
-                    >
-                      {idx + 1}
+          {scheduleItems.length > 0 ? (
+            <div className="relative">
+              <div className="space-y-6">
+                {scheduleItems.map((item, idx) => (
+                  <div key={item.id} className="flex gap-4">
+                    <div className="flex flex-col items-center">
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow ${getScheduleColorClass(
+                          idx,
+                        )}`}
+                      >
+                        {idx + 1}
+                      </div>
+                      {idx < scheduleItems.length - 1 && (
+                        <div className="mt-1 mb-1 w-px flex-1 bg-gradient-to-b from-blue-200 via-indigo-200 to-purple-200"></div>
+                      )}
                     </div>
-                    <span className="text-gray-700 font-medium">{schedule.event}</span>
+                    <div className="flex-1 rounded-2xl border border-gray-200/80 bg-white/90 p-4 shadow-sm">
+                      <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                      <p className="text-sm text-gray-600 mt-1">{item.displayDate}</p>
+                      {item.isRange && item.startText && item.endText && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          시작 {item.startText} · 종료 {item.endText}
+                        </p>
+                      )}
+                      {!item.isRange && item.startText && (
+                        <p className="text-xs text-gray-500 mt-2">예정일 {item.startText}</p>
+                      )}
+                    </div>
                   </div>
-                  <span className="font-bold text-gray-900">{schedule.date}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-sm text-gray-500">등록된 일정이 없습니다.</p>
-            )}
-          </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">등록된 일정이 없습니다.</p>
+          )}
         </div>
       </Card>
     </div>
@@ -597,6 +625,104 @@ function renderEligibilityDetails(value: EligibilityValue) {
   }
 
   return <p className="text-sm text-gray-600">정보 없음</p>;
+}
+
+function normalizeSchedules(raw: AnnouncementDetail['schedules']): NormalizedScheduleItem[] {
+  if (!raw) {
+    return [];
+  }
+
+  if (Array.isArray(raw)) {
+    return raw
+      .filter((item) => item && (item.event || item.date))
+      .map((item, index) => createScheduleItem(item.event, item.date, index));
+  }
+
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw);
+      return normalizeSchedules(parsed as AnnouncementDetail['schedules']);
+    } catch {
+      return [createScheduleItem('주요 일정', raw, 0)];
+    }
+  }
+
+  if (typeof raw === 'object') {
+    return Object.entries(raw as Record<string, string>).map(([event, date], index) =>
+      createScheduleItem(event, typeof date === 'string' ? date : String(date ?? ''), index),
+    );
+  }
+
+  return [];
+}
+
+function createScheduleItem(event?: string, dateText?: string, index = 0): NormalizedScheduleItem {
+  const title = event?.trim() || `일정 ${index + 1}`;
+  const formatted = formatScheduleDate(dateText);
+  return {
+    id: `${title}-${index}`,
+    title,
+    displayDate: formatted.display,
+    rawDate: dateText,
+    startText: formatted.startText,
+    endText: formatted.endText,
+    isRange: formatted.isRange,
+  };
+}
+
+function formatScheduleDate(dateText?: string) {
+  const fallback = {
+    display: '일정 미정',
+    startText: undefined as string | undefined,
+    endText: undefined as string | undefined,
+    isRange: false,
+  };
+
+  if (!dateText) {
+    return fallback;
+  }
+
+  const cleaned = dateText.replace(/\s+/g, ' ').trim();
+  if (!cleaned) {
+    return fallback;
+  }
+
+  const parts = cleaned.split('~').map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    const startFormatted = formatSingleDate(parts[0]);
+    const endFormatted = formatSingleDate(parts[1]);
+    return {
+      display: `${startFormatted} ~ ${endFormatted}`,
+      startText: startFormatted,
+      endText: endFormatted,
+      isRange: true,
+    };
+  }
+
+  const singleFormatted = formatSingleDate(parts[0] ?? cleaned);
+  return {
+    display: singleFormatted,
+    startText: singleFormatted,
+    endText: undefined,
+    isRange: false,
+  };
+}
+
+function formatSingleDate(value: string) {
+  const date = new Date(value);
+  if (!Number.isNaN(date.getTime())) {
+    return new Intl.DateTimeFormat('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      weekday: 'short',
+    }).format(date);
+  }
+  return value;
+}
+
+function getScheduleColorClass(index: number) {
+  return scheduleColorPalette[index % scheduleColorPalette.length];
 }
 
 function NearbyPlacesPanel({
