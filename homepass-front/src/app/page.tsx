@@ -5,7 +5,7 @@ import Link from 'next/link';
 import axios from 'axios';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
-import { getAnnouncements } from '@/lib/api/announcements';
+import { getAnnouncements, triggerAnnouncementsScrape } from '@/lib/api/announcements';
 import type { Announcement } from '@/types/api';
 import BookmarkButton from '@/components/common/BookmarkButton';
 import { useQuery } from '@tanstack/react-query';
@@ -22,6 +22,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPast, setShowPast] = useState(false);
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeMessage, setScrapeMessage] = useState('');
 
   // 내 관심 공고 목록 불러오기 (하트 초기 상태 반영)
   const { data: myBookmarks } = useQuery<Announcement[]>({
@@ -34,51 +36,76 @@ export default function Home() {
     [myBookmarks],
   );
 
+  const fetchAnnouncements = async (signal?: AbortSignal) => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await getAnnouncements(
+        {
+          size: 50,
+          exclude_past: !showPast,
+          within_days: !showPast ? 30 : undefined,
+          order_by: 'post_date',
+          order: 'desc',
+        },
+        { signal },
+      );
+      setAnnouncements(response.items);
+    } catch (err: unknown) {
+      // 요청 취소는 오류로 처리하지 않음
+      const error = err as {
+        name?: string;
+        code?: string;
+        message?: string;
+      };
+      const message = typeof error?.message === 'string' ? error.message : '';
+      const isCanceled =
+        axios.isCancel?.(err) ||
+        error?.name === 'CanceledError' ||
+        error?.code === 'ERR_CANCELED' ||
+        message.includes('aborted without reason');
+      if (isCanceled) {
+        return;
+      }
+      console.error(err);
+      setError('공고 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     const controller = new AbortController();
-    const fetchData = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const response = await getAnnouncements(
-          {
-            size: 50,
-            exclude_past: !showPast,
-            within_days: !showPast ? 30 : undefined,
-            order_by: 'post_date',
-            order: 'desc',
-          },
-          { signal: controller.signal },
-        );
-        setAnnouncements(response.items);
-      } catch (err: unknown) {
-        // 요청 취소는 오류로 처리하지 않음
-        const error = err as {
-          name?: string;
-          code?: string;
-          message?: string;
-        };
-        const message = typeof error?.message === 'string' ? error.message : '';
-        const isCanceled =
-          axios.isCancel?.(err) ||
-          error?.name === 'CanceledError' ||
-          error?.code === 'ERR_CANCELED' ||
-          message.includes('aborted without reason');
-        if (isCanceled) {
-          return;
-        }
-        console.error(err);
-        setError('공고 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+    fetchAnnouncements(controller.signal);
     return () => {
       controller.abort();
     };
   }, [showPast]);
+
+  const handleScrapeAnnouncements = async () => {
+    if (isScraping) return;
+    
+    setIsScraping(true);
+    setScrapeMessage('공고 목록을 업데이트 중입니다...');
+    
+    try {
+      // 기본값: board_id 7000부터 7일치 스크랩
+      await triggerAnnouncementsScrape({ start_board_id: 7000, days_limit: 7 });
+      setScrapeMessage('업데이트 요청이 전송되었습니다. 잠시 후 새로고침 됩니다.');
+      
+      // 스크래핑 요청 후 잠시 대기했다가 목록 새로고침
+      setTimeout(() => {
+        fetchAnnouncements();
+        setScrapeMessage('');
+        setIsScraping(false);
+      }, 3000);
+      
+    } catch (err) {
+      console.error('Scrape failed:', err);
+      setScrapeMessage('업데이트 요청 실패. 잠시 후 다시 시도해주세요.');
+      setIsScraping(false);
+    }
+  };
 
   const regions = useMemo(() => {
     const uniqueRegions = new Set<string>();
@@ -279,21 +306,58 @@ export default function Home() {
               </div>
             </div>
 
-            {/* 자주 검색하는 키워드 */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-gray-200">
-              <span className="text-sm text-gray-900 font-medium flex items-center gap-1">
-                <span>🔥</span> 자주 검색:
-              </span>
-              {['강남구', '행복주택', '국민임대', '서울'].map((keyword) => (
-                <button
-                  key={keyword}
-                  onClick={() => setSearchQuery(keyword)}
-                  className="px-3 py-1.5 text-sm bg-gradient-to-r from-gray-50 to-gray-100 text-gray-800 rounded-full hover:from-blue-50 hover:to-indigo-50 hover:text-blue-600 hover:shadow-md transition-all duration-200 font-medium border border-gray-200/50 hover:border-blue-200"
-                >
-                  {keyword}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-gray-200">
+              {/* 자주 검색하는 키워드 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-900 font-medium flex items-center gap-1">
+                  <span>🔥</span> 자주 검색:
+                </span>
+                {['강남구', '행복주택', '국민임대', '서울'].map((keyword) => (
+                  <button
+                    key={keyword}
+                    onClick={() => setSearchQuery(keyword)}
+                    className="px-3 py-1.5 text-sm bg-gradient-to-r from-gray-50 to-gray-100 text-gray-800 rounded-full hover:from-blue-50 hover:to-indigo-50 hover:text-blue-600 hover:shadow-md transition-all duration-200 font-medium border border-gray-200/50 hover:border-blue-200"
+                  >
+                    {keyword}
+                  </button>
+                ))}
+              </div>
+
+              {/* 공고 업데이트 버튼 */}
+              <button
+                onClick={handleScrapeAnnouncements}
+                disabled={isScraping}
+                className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors flex items-center gap-2 ${
+                  isScraping
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg'
+                }`}
+              >
+                {isScraping ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    업데이트 중...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    공고 업데이트
+                  </>
+                )}
+              </button>
             </div>
+            
+            {/* 스크랩 메시지 */}
+            {scrapeMessage && (
+               <div className="mt-2 text-sm text-blue-600 text-right font-medium animate-pulse">
+                 {scrapeMessage}
+               </div>
+            )}
           </div>
         </Card>
 

@@ -219,6 +219,7 @@ class SocoBoardSpider(Spider):
             "contractor": row.get("optn3"),
             "listing_number": list_number,
             "board_id": board_id,
+            "housing_type": "청년안심주택",
         }
         yield item
 
