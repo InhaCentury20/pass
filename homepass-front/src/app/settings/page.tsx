@@ -154,7 +154,7 @@ export default function SettingsPage() {
       max_area: preference?.max_area !== undefined && preference?.max_area !== null ? String(preference.max_area) : '',
     max_deposit:
       preference?.max_deposit !== undefined && preference?.max_deposit !== null
-        ? String(Math.round(preference.max_deposit / 10_000))
+        ? String(Math.round(preference.max_deposit))
         : '',
       max_monthly_rent:
         preference?.max_monthly_rent !== undefined && preference?.max_monthly_rent !== null
