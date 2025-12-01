@@ -51,6 +51,58 @@ async def get_nearby_places(
         )
 
 
+@router.get("/nearby-by-address", response_model=NearbyPlacesResponse)
+async def get_nearby_places_by_address(
+    address: str = Query(..., description="주소 (예: 서울시 관악구 신림동)"),
+    category: str = Query(..., description="시설 분류 (subway, school, store, hospital, park, mart)"),
+    naver_maps: NaverMapsService = Depends(get_naver_maps_service),
+):
+    """
+    주소 기반 주변 시설 조회
+
+    주소를 Geocoding으로 좌표로 변환한 후 주변 시설을 검색합니다.
+
+    - address: 검색할 주소
+    - category: 시설 분류
+      - 'subway': 지하철역
+      - 'school': 초등학교
+      - 'store': 편의점
+      - 'hospital': 병원
+      - 'park': 공원
+      - 'mart': 마트
+    """
+    try:
+        # 1. 주소를 좌표로 변환
+        geocode_result = await naver_maps.geocode(address)
+
+        if not geocode_result:
+            raise HTTPException(
+                status_code=404,
+                detail=f"주소를 찾을 수 없습니다: {address}"
+            )
+
+        lat = geocode_result["lat"]
+        lng = geocode_result["lng"]
+
+        # 2. 좌표로 주변 시설 검색
+        places = await naver_maps.get_nearby_places(lat, lng, category)
+
+        return NearbyPlacesResponse(
+            center={"lat": lat, "lng": lng},
+            category=category,
+            places=places
+        )
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"주변 시설 조회 중 오류가 발생했습니다: {str(e)}"
+        )
+
+
 @router.post("/geocode", response_model=GeocodeResponse)
 async def geocode_address(
     request: GeocodeRequest,
