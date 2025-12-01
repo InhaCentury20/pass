@@ -25,6 +25,9 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 def _get_primary_user(db: Session) -> User:
+    preferred = db.get(User, 4)
+    if preferred:
+        return preferred
     stmt = select(User).order_by(User.user_id.asc())
     user = db.scalars(stmt).first()
     if not user:

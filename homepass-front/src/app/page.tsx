@@ -6,10 +6,11 @@ import axios from 'axios';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
 import { getAnnouncements, triggerAnnouncementsScrape } from '@/lib/api/announcements';
-import type { Announcement } from '@/types/api';
+import type { Announcement, Preference, UserProfileResponse } from '@/types/api';
 import BookmarkButton from '@/components/common/BookmarkButton';
 import { useQuery } from '@tanstack/react-query';
 import { getMyBookmarks } from '@/lib/api/bookmarks';
+import { fetchUserProfile } from '@/lib/api/users';
 
 type SortOption = 'latest' | 'dday' | 'deposit' | 'rent';
 
@@ -18,6 +19,10 @@ export default function Home() {
   const [selectedRegion, setSelectedRegion] = useState('');
   const [selectedHousingType, setSelectedHousingType] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('latest');
+  const [maxDepositFilter, setMaxDepositFilter] = useState<number | null>(null);
+  const [maxRentFilter, setMaxRentFilter] = useState<number | null>(null);
+  const [preferenceApplied, setPreferenceApplied] = useState(false);
+  const [preferenceInfo, setPreferenceInfo] = useState<Preference | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -82,6 +87,38 @@ export default function Home() {
     };
   }, [showPast]);
 
+  useEffect(() => {
+    const loadPreference = async () => {
+      try {
+        const profile: UserProfileResponse = await fetchUserProfile();
+        if (profile.preference) {
+          setPreferenceInfo(profile.preference);
+          if (!preferenceApplied) {
+            const pref = profile.preference;
+            const firstLocation =
+              pref.locations && pref.locations.length > 0 ? pref.locations[0] ?? '' : '';
+            if (firstLocation) {
+              setSelectedRegion(firstLocation);
+            }
+            if (pref.housing_types && pref.housing_types.length > 0) {
+              setSelectedHousingType(pref.housing_types[0] ?? '');
+            }
+            if (pref.max_deposit !== undefined && pref.max_deposit !== null) {
+              setMaxDepositFilter(pref.max_deposit);
+            }
+            if (pref.max_monthly_rent !== undefined && pref.max_monthly_rent !== null) {
+              setMaxRentFilter(pref.max_monthly_rent);
+            }
+            setPreferenceApplied(true);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load preference info', err);
+      }
+    };
+    loadPreference();
+  }, [preferenceApplied]);
+
   const handleScrapeAnnouncements = async () => {
     if (isScraping) return;
     
@@ -114,8 +151,12 @@ export default function Home() {
         uniqueRegions.add(announcement.region.split(' ')[0] ?? announcement.region);
       }
     });
-    return ['전체', ...Array.from(uniqueRegions)];
-  }, [announcements]);
+    const regionList = ['전체', ...Array.from(uniqueRegions)];
+    if (selectedRegion && !uniqueRegions.has(selectedRegion) && selectedRegion !== '') {
+      regionList.push(selectedRegion);
+    }
+    return regionList;
+  }, [announcements, selectedRegion]);
 
   const housingTypes = useMemo(() => {
     const uniqueTypes = new Set<string>();
@@ -124,8 +165,12 @@ export default function Home() {
         uniqueTypes.add(announcement.housing_type);
       }
     });
-    return ['전체', ...Array.from(uniqueTypes)];
-  }, [announcements]);
+    const typeList = ['전체', ...Array.from(uniqueTypes)];
+    if (selectedHousingType && !uniqueTypes.has(selectedHousingType) && selectedHousingType !== '') {
+      typeList.push(selectedHousingType);
+    }
+    return typeList;
+  }, [announcements, selectedHousingType]);
 
   const filteredAnnouncements = useMemo(() => {
     let result = [...announcements];
@@ -150,6 +195,23 @@ export default function Home() {
       result = result.filter(
         (announcement) => announcement.housing_type === selectedHousingType,
       );
+    }
+
+    if (maxDepositFilter !== null) {
+      result = result.filter((announcement) => {
+        const deposit = announcement.min_deposit ?? announcement.max_deposit;
+        if (deposit === null || deposit === undefined) return false;
+        return deposit <= maxDepositFilter;
+      });
+    }
+
+    if (maxRentFilter !== null) {
+      result = result.filter((announcement) => {
+        if (announcement.monthly_rent === null || announcement.monthly_rent === undefined) {
+          return false;
+        }
+        return announcement.monthly_rent <= maxRentFilter;
+      });
     }
 
     if (!showPast) {
@@ -191,7 +253,24 @@ export default function Home() {
     });
 
     return result;
-  }, [announcements, searchQuery, selectedRegion, selectedHousingType, sortBy, showPast]);
+  }, [
+    announcements,
+    searchQuery,
+    selectedRegion,
+    selectedHousingType,
+    sortBy,
+    showPast,
+    maxDepositFilter,
+    maxRentFilter,
+  ]);
+
+  const handleResetPreferenceFilters = () => {
+    setSelectedRegion('');
+    setSelectedHousingType('');
+    setMaxDepositFilter(null);
+    setMaxRentFilter(null);
+    setPreferenceApplied(false);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
@@ -471,6 +550,26 @@ export default function Home() {
                         </svg>
                       </span>
                     </div>
+
+            {(preferenceApplied || maxDepositFilter !== null || maxRentFilter !== null) && (
+              <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-900 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-blue-700 flex items-center gap-1">
+                    <span>✨</span> 희망 조건 필터 적용 중
+                  </span>
+                  {selectedRegion && <Badge variant="default">지역: {selectedRegion}</Badge>}
+                  {selectedHousingType && <Badge variant="info">주택 유형: {selectedHousingType}</Badge>}
+                  {maxDepositFilter !== null && <Badge variant="warning">보증금 ≤ {maxDepositFilter.toLocaleString()}만원</Badge>}
+                  {maxRentFilter !== null && <Badge variant="success">월세 ≤ {maxRentFilter.toLocaleString()}만원</Badge>}
+                </div>
+                <button
+                  onClick={handleResetPreferenceFilters}
+                  className="text-blue-600 hover:text-blue-800 font-medium underline-offset-4 hover:underline"
+                >
+                  조건 초기화
+                </button>
+              </div>
+            )}
                   </div>
                 </Card>
               </Link>
