@@ -154,11 +154,50 @@ class Announcement(Base):
 
     @property
     def schedules(self) -> List[Dict[str, Any]]:
+        def _normalize(value: Any) -> List[Dict[str, Any]]:
+            result: List[Dict[str, Any]] = []
+
+            if isinstance(value, list):
+                for idx, item in enumerate(value):
+                    if isinstance(item, dict):
+                        event = item.get("event") or item.get("title")
+                        date = item.get("date") or item.get("value")
+                        if event or date:
+                            result.append(
+                                {
+                                    "event": str(event) if event is not None else f"일정 {idx + 1}",
+                                    "date": str(date) if date is not None else None,
+                                }
+                            )
+                return result
+
+            if isinstance(value, dict):
+                for key, raw in value.items():
+                    if key or raw:
+                        result.append(
+                            {
+                                "event": str(key) if key is not None else "일정",
+                                "date": str(raw) if raw is not None else None,
+                            }
+                        )
+                return result
+
+            if isinstance(value, str) and value.strip():
+                try:
+                    parsed = json.loads(value)
+                except json.JSONDecodeError:
+                    result.append({"event": "주요 일정", "date": value})
+                    return result
+                return _normalize(parsed)
+
+            return result
+
         # 1) DB 컬럼 우선
-        if isinstance(self.schedules_json, list):
-            return [s for s in self.schedules_json if isinstance(s, dict)]
+        normalized = _normalize(self.schedules_json)
+        if normalized:
+            return normalized
+
         # 2) fallback: parsed_content
         data = self.load_parsed_content()
-        schedules = data.get("schedules", [])
-        return schedules if isinstance(schedules, list) else []
+        return _normalize(data.get("schedules"))
 
