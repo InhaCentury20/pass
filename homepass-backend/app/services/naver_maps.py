@@ -347,7 +347,7 @@ class NaverMapsService:
             query=keyword,
             lat=lat,
             lng=lng,
-            radius=1000,
+            radius=10000,  # 10km로 확대 (서울 내 주변 시설 검색용)
             display=5
         )
 
