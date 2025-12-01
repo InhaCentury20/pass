@@ -201,6 +201,7 @@ class SocoBoardSpider(Spider):
         apply_date_text = row.get("optn4") or self._extract_table_value(response, "청약신청일")
 
         category_text = self._build_category_label(row) or self._extract_table_value(response, "카테고리")
+        board_content_text = self._extract_board_content_text(response)
 
         item = {
             "title": title,
@@ -221,6 +222,8 @@ class SocoBoardSpider(Spider):
             "board_id": board_id,
             "housing_type": "청년안심주택",
         }
+        if board_content_text:
+            item["parsed_content"] = {"board_content_text": board_content_text}
         yield item
 
     def _clean_date(self, value: Optional[str]) -> Optional[str]:
@@ -265,6 +268,16 @@ class SocoBoardSpider(Spider):
     def _extract_pdf_link(self, response: scrapy.http.Response) -> Optional[str]:
         href = response.css('ul.view_data span.file a[href*="fileDown.do"]::attr(href)').get()
         return response.urljoin(href) if href else None
+
+    def _extract_board_content_text(self, response: scrapy.http.Response) -> Optional[str]:
+        node = response.css("div.board_cont")
+        if not node:
+            return None
+        text = node.xpath("string()").get()
+        if not text:
+            return None
+        cleaned = re.sub(r"\s+", " ", text).strip()
+        return cleaned or None
 
     # ------------------------------------------------------------------ #
     # Shutdown
