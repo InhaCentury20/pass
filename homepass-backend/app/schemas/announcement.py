@@ -6,6 +6,15 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
+class PriceInfoSchema(BaseModel):
+    type: Optional[str] = None
+    deposit_ratio: Optional[str] = None
+    supply_type_primary: Optional[str] = None
+    supply_type_secondary: Optional[str] = None
+    deposit_amount: Optional[float] = None
+    rent_amount: Optional[float] = None
+
+
 class AnnouncementSchema(BaseModel):
     announcement_id: int
     title: str
@@ -30,6 +39,7 @@ class AnnouncementSchema(BaseModel):
     image_urls: List[str] = Field(default_factory=list)
     is_customized: bool = False
     dday: Optional[int] = None
+    price: List[PriceInfoSchema] = Field(default_factory=list)
 
     class Config:
         from_attributes = True

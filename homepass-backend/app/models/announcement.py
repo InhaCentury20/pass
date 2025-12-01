@@ -38,6 +38,7 @@ class Announcement(Base):
     scraped_at = Column(DateTime, nullable=True, server_default=func.current_timestamp())
     image_urls_json = Column("image_urls", JSON, nullable=True)
     schedules_json = Column("schedules", JSON, nullable=True)
+    price_json = Column("price", JSON, nullable=True)
     # DB 컬럼은 프로퍼티와 이름 충돌을 피하기 위해 *_db로 보관
     min_deposit_db = Column("min_deposit", Integer, nullable=True)
     monthly_rent_db = Column("monthly_rent", Integer, nullable=True)
@@ -151,6 +152,61 @@ class Announcement(Base):
         data = self.load_parsed_content()
         value = data.get("commute_time")
         return int(value) if isinstance(value, (int, float)) else None
+
+    @staticmethod
+    def _normalize_price_option(raw: dict) -> Optional[Dict[str, Any]]:
+        if not isinstance(raw, dict):
+            return None
+
+        def first(*keys):
+            for key in keys:
+                if key in raw and raw[key] not in (None, ""):
+                    return raw[key]
+            return None
+
+        def to_float(value):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        normalized = {
+            "type": first("타입", "type"),
+            "deposit_ratio": first("보증금%", "deposit_ratio"),
+            "supply_type_primary": first("공급유형1", "supply_type_primary"),
+            "supply_type_secondary": first("공급유형2", "supply_type_secondary"),
+            "deposit_amount": to_float(first("보증금(만원)", "deposit_amount")),
+            "rent_amount": to_float(first("임대료(만원)", "rent_amount")),
+        }
+
+        if all(value in (None, "") for value in normalized.values()):
+            return None
+
+        return normalized
+
+    @property
+    def price(self) -> List[Dict[str, Any]]:
+        def normalize(value: Any) -> List[Dict[str, Any]]:
+            result: List[Dict[str, Any]] = []
+            if isinstance(value, list):
+                for item in value:
+                    normalized = self._normalize_price_option(item)
+                    if normalized:
+                        result.append(normalized)
+                return result
+            if isinstance(value, str) and value.strip():
+                try:
+                    parsed = json.loads(value)
+                except json.JSONDecodeError:
+                    return result
+                return normalize(parsed)
+            return result
+
+        normalized = normalize(self.price_json)
+        if normalized:
+            return normalized
+        data = self.load_parsed_content()
+        return normalize(data.get("price"))
 
     @property
     def schedules(self) -> List[Dict[str, Any]]:

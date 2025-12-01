@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
-import type { Announcement, AnnouncementDetail } from '@/types/api';
+import type { Announcement, AnnouncementDetail, PriceOption } from '@/types/api';
 import BookmarkButton from '@/components/common/BookmarkButton';
 import { getMyBookmarks } from '@/lib/api/bookmarks';
 import { getNearbyPlaces } from '@/lib/api/places';
@@ -210,6 +210,27 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
     () => normalizeSchedules(announcement.schedules),
     [announcement.schedules],
   );
+  const priceGroups = useMemo<Array<[string, PriceOption[]]>>(() => {
+    if (!announcement.price || announcement.price.length === 0) {
+      return [];
+    }
+    const groups = new Map<string, PriceOption[]>();
+    announcement.price.forEach((option) => {
+      if (!option) return;
+      const key = option.supply_type_primary || '기타 공급';
+      if (!groups.has(key)) {
+        groups.set(key, []);
+      }
+      groups.get(key)!.push(option);
+    });
+    return Array.from(groups.entries());
+  }, [announcement.price]);
+  const formatAmount = (value?: number | null) => {
+    if (value === undefined || value === null || Number.isNaN(value)) {
+      return '정보 없음';
+    }
+    return `${value.toLocaleString()}만원`;
+  };
 
   return (
     <div className="space-y-6">
@@ -263,6 +284,58 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
           />
         </div>
       </Card>
+
+      {priceGroups.length > 0 && (
+        <Card gradient className="shadow-lg">
+          <div className="p-6 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold mb-2 flex items-center gap-2 text-gray-900">
+                <span>💰</span> 상세 금액 구성
+              </h2>
+              <p className="text-sm text-gray-600">
+                공급 유형과 타입별 보증금·임대료 정보를 확인하세요.
+              </p>
+            </div>
+            <div className="space-y-6">
+              {priceGroups.map(([groupName, items]) => (
+                <div key={groupName} className="space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <p className="text-lg font-semibold text-gray-900">{groupName}</p>
+                    <span className="text-xs text-gray-500">구성 {items.length}개</span>
+                  </div>
+                  <div className="overflow-x-auto rounded-2xl border border-gray-100">
+                    <table className="min-w-full divide-y divide-gray-100 text-sm text-gray-900">
+                      <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        <tr>
+                          <th className="px-4 py-3 text-left">타입</th>
+                          <th className="px-4 py-3 text-left">보증금 비율</th>
+                          <th className="px-4 py-3 text-left">공급 구분</th>
+                          <th className="px-4 py-3 text-right">보증금</th>
+                          <th className="px-4 py-3 text-right">임대료</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 bg-white">
+                        {items.map((option, index) => (
+                          <tr
+                            key={`${groupName}-${option.type ?? 'type'}-${option.deposit_ratio ?? index}`}
+                            className="hover:bg-gray-50/70 transition-colors"
+                          >
+                            <td className="px-4 py-3 font-medium">{option.type ?? '정보 없음'}</td>
+                            <td className="px-4 py-3">{option.deposit_ratio ?? '정보 없음'}</td>
+                            <td className="px-4 py-3">{option.supply_type_secondary ?? '정보 없음'}</td>
+                            <td className="px-4 py-3 text-right">{formatAmount(option.deposit_amount)}</td>
+                            <td className="px-4 py-3 text-right">{formatAmount(option.rent_amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      )}
 
       <Card gradient className="shadow-lg">
         <div className="p-6">

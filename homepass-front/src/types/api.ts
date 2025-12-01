@@ -36,6 +36,15 @@ export interface Preference {
   updated_at?: string;
 }
 
+export interface PriceOption {
+  type?: string;
+  deposit_ratio?: string;
+  supply_type_primary?: string;
+  supply_type_secondary?: string;
+  deposit_amount?: number;
+  rent_amount?: number;
+}
+
 export interface Announcement {
   announcement_id: number;
   title: string;
@@ -60,6 +69,7 @@ export interface Announcement {
   image_urls: string[];
   is_customized: boolean;
   dday?: number;
+  price?: PriceOption[];
 }
 
 export type AnnouncementSchedule =

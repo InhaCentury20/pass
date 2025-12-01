@@ -96,6 +96,7 @@ def _serialize_announcement(announcement: Announcement) -> AnnouncementSchema:
         image_urls=announcement.image_urls,
         is_customized=announcement.is_customized,
         dday=dday,
+        price=announcement.price,
     )
 
 
