@@ -132,6 +132,37 @@ export function AnnouncementDetailClient({ announcement }: Props) {
               </button>
             ))}
           </nav>
+          {(announcement.source_url || announcement.original_pdf_url) && (
+            <div className="flex flex-wrap gap-3 px-4 pb-4">
+              {announcement.source_url && (
+                <a
+                  href={announcement.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold shadow hover:from-blue-600 hover:to-indigo-700 transition-all duration-200"
+                >
+                  공고 보러 가기
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 3h7v7m0-7L10 14m0 0v7m0-7H3" />
+                  </svg>
+                </a>
+              )}
+              {announcement.original_pdf_url && (
+                <a
+                  href={announcement.original_pdf_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-800 font-semibold shadow hover:border-gray-300 hover:shadow-md transition-all duration-200"
+                >
+                  PDF 다운로드
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V4" />
+                  </svg>
+                </a>
+              )}
+            </div>
+          )}
         </Card>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
