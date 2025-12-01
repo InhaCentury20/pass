@@ -21,7 +21,7 @@ const NaverMap = dynamic(() => import('@/components/common/NaverMap'), {
   ),
 });
 
-type TabType = 'info' | 'commute' | 'qa';
+type TabType = 'info' | 'commute';
 
 const scheduleColorPalette = ['bg-blue-500', 'bg-indigo-500', 'bg-purple-500', 'bg-rose-500', 'bg-emerald-500'];
 
@@ -47,7 +47,6 @@ export function AnnouncementDetailClient({ announcement }: Props) {
   const tabs: Array<{ id: TabType; label: string; icon: string }> = [
     { id: 'info', label: '핵심 정보', icon: '📋' },
     { id: 'commute', label: '출퇴근/주변', icon: '🚇' },
-    { id: 'qa', label: 'Q&A', icon: '💬' },
   ];
 
   const ddayText =
@@ -138,7 +137,6 @@ export function AnnouncementDetailClient({ announcement }: Props) {
           <div className="lg:col-span-2 space-y-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
             {activeTab === 'info' && <InfoSection announcement={announcement} />}
             {activeTab === 'commute' && <CommuteSection announcement={announcement} />}
-            {activeTab === 'qa' && <QATab />}
           </div>
           <div className="lg:col-span-1">
             <Sidebar
@@ -298,7 +296,7 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
               selectedCategory={selectedCategory}
             />
           ) : (
-            <div className="aspect-video bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 rounded-xl flex items-center justify-center border-2 border-dashed border-blue-300 text-gray-600">
+            <div className="aspect-video bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 rounded-xl flex items-center justify-center border-2 border-dashed border-blue-300 text-gray-900 font-semibold">
               위치 정보가 등록되지 않았습니다
             </div>
           )}
@@ -361,40 +359,6 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
         </div>
       </Card>
     </div>
-  );
-}
-
-function QATab() {
-  const [question, setQuestion] = useState('');
-
-  return (
-    <Card gradient className="shadow-lg">
-      <div className="p-6 space-y-4">
-        <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-          <span>💬</span> AI 챗봇에게 질문하기
-        </h2>
-        <div className="h-48 bg-gradient-to-br from-gray-50 to-blue-50/30 rounded-xl p-6 border border-gray-200 flex items-center justify-center text-gray-400">
-          곧 AI 챗봇과의 대화를 제공할 예정입니다.
-        </div>
-        <div className="flex gap-3">
-          <input
-            type="text"
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="질문을 입력하세요..."
-            className="flex-1 px-5 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all text-base"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                setQuestion('');
-              }
-            }}
-          />
-          <button className="px-8 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200">
-            전송
-          </button>
-        </div>
-      </div>
-    </Card>
   );
 }
 
@@ -488,7 +452,7 @@ function Sidebar({
 function InfoRow({ label, value, emoji }: { label: string; value: string; emoji: string }) {
   return (
     <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-lg border border-blue-100">
-      <span className="text-gray-600 font-medium flex items-center gap-2">
+      <span className="text-gray-900 font-semibold flex items-center gap-2">
         <span>{emoji}</span> {label}
       </span>
       <span className="font-bold text-gray-900 text-sm">{value}</span>
@@ -752,9 +716,9 @@ function NearbyPlacesPanel({
 
   if (isLoading) {
     return (
-      <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
+          <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
         <div className="animate-spin w-8 h-8 mx-auto mb-2 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-        <div className="text-sm text-gray-600">주변 시설 검색 중...</div>
+            <div className="text-sm text-gray-900 font-semibold">주변 시설 검색 중...</div>
       </div>
     );
   }
@@ -772,7 +736,7 @@ function NearbyPlacesPanel({
     return (
       <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
         <div className="text-4xl mb-2">📍</div>
-        <div className="text-sm text-gray-600">주변에서 해당 시설을 찾을 수 없습니다.</div>
+        <div className="text-sm text-gray-900 font-semibold">주변에서 해당 시설을 찾을 수 없습니다.</div>
       </div>
     );
   }
@@ -788,8 +752,8 @@ function NearbyPlacesPanel({
             <h4 className="font-bold text-gray-900">{place.name}</h4>
             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">#{idx + 1}</span>
           </div>
-          <p className="text-sm text-gray-600 mb-1">📍 {place.address}</p>
-          {place.telephone && <p className="text-sm text-gray-600">☎️ {place.telephone}</p>}
+          <p className="text-sm text-gray-900 font-medium mb-1">📍 {place.address}</p>
+          {place.telephone && <p className="text-sm text-gray-900 font-medium">☎️ {place.telephone}</p>}
         </div>
       ))}
     </div>
