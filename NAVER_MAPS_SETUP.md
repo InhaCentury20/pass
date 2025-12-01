@@ -54,14 +54,14 @@ NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=8w5hzhnvg4
 ### 환경 설정
 
 현재 프로젝트는 EC2 서버를 사용하도록 설정되어 있습니다:
-- **Backend API**: http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com
+- **Backend API**: http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com
 - **Frontend**: 로컬 개발 환경 (http://localhost:3000)
 
 ### 1. Backend (EC2에 배포된 경우)
 
 EC2 서버에 이미 배포되어 있다면, API 문서를 확인할 수 있습니다:
-- Swagger UI: http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/docs
-- ReDoc: http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/redoc
+- Swagger UI: http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com/docs
+- ReDoc: http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com/redoc
 
 ### 2. Frontend 로컬 실행
 
@@ -107,7 +107,7 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 #### 3.1. API 직접 테스트 (Swagger UI 사용)
 
-1. 브라우저에서 http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/docs 접속
+1. 브라우저에서 http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com/docs 접속
 2. **places** 태그 확인
 3. 테스트할 API 선택:
 
@@ -146,7 +146,7 @@ Request Body:
 
 ```bash
 # EC2 서버 주소
-API_URL="http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com"
+API_URL="http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com"
 
 # 주변 지하철역 검색
 curl -X GET "$API_URL/api/v1/places/nearby?lat=37.5665&lng=126.9780&category=subway"
@@ -263,7 +263,7 @@ curl -X POST "$API_URL/api/v1/places/directions" \
 
 다음을 확인하세요:
 
-- [ ] Backend API가 EC2에서 정상 작동 (http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/docs)
+- [ ] Backend API가 EC2에서 정상 작동 (http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com/docs)
 - [ ] Frontend 서버가 http://localhost:3000에서 실행 중
 - [ ] Swagger UI에서 places API 확인 가능
 - [ ] `/api/v1/places/nearby` API 호출 성공

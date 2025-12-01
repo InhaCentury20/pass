@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:3001",
-        "http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com",
+        "http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com",
     ]
     
     # 네이버 클라우드 플랫폼 (Maps API - 지도, Geocoding, Direction)

@@ -22,14 +22,14 @@ GitHub 저장소 → Settings → Secrets and variables → Actions → New repo
 
 필수 Secrets:
 - **EC2_SSH_PRIVATE_KEY**: `inha-capstone-10.pem` 파일 전체 내용
-- **EC2_HOST**: `ec2-44-246-219-48.us-west-2.compute.amazonaws.com`
+- **EC2_HOST**: `ec2-35-82-41-239.us-west-2.compute.amazonaws.com`
 - **EC2_USER**: `ec2-user`
 
 ### 3. EC2 서버에서 초기 설정
 
 ```bash
 # 1. EC2 접속
-ssh -i inha-capstone-10.pem ec2-user@ec2-44-246-219-48.us-west-2.compute.amazonaws.com
+ssh -i inha-capstone-10.pem ec2-user@ec2-35-82-41-239.us-west-2.compute.amazonaws.com
 
 # 2. 시스템 업데이트
 sudo yum update -y
@@ -108,7 +108,7 @@ nano ~/homepass/homepass-front/.env.local
 ```
 내용:
 ```env
-NEXT_PUBLIC_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/api
+NEXT_PUBLIC_API_URL=http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com/api
 ```
 
 ```bash
@@ -182,8 +182,8 @@ EXIT;
 
 ### 10. 브라우저에서 확인
 
-- Frontend: http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/
-- Backend API Docs: http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/docs
+- Frontend: http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com/
+- Backend API Docs: http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com/docs
 
 ---
 

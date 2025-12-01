@@ -17,7 +17,7 @@
 ### EC2 인스턴스 접속
 ```bash
 chmod 400 inha-capstone-10.pem
-ssh -i inha-capstone-10.pem ec2-user@ec2-44-246-219-48.us-west-2.compute.amazonaws.com
+ssh -i inha-capstone-10.pem ec2-user@ec2-35-82-41-239.us-west-2.compute.amazonaws.com
 ```
 
 ### 시스템 업데이트
@@ -191,7 +191,7 @@ GitHub 저장소의 Settings > Secrets and variables > Actions로 이동하여 �
 
 2. **EC2_HOST**
    ```
-   ec2-44-246-219-48.us-west-2.compute.amazonaws.com
+   ec2-35-82-41-239.us-west-2.compute.amazonaws.com
    ```
 
 3. **EC2_USER**
@@ -229,7 +229,7 @@ JWT_SECRET=your-secret-key-here
 JWT_ALGORITHM=HS256
 
 # CORS
-CORS_ORIGINS=["http://localhost:3000", "http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com"]
+CORS_ORIGINS=["http://localhost:3000", "http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com"]
 
 # AWS (if using S3)
 AWS_ACCESS_KEY_ID=your-access-key
@@ -246,7 +246,7 @@ nano ~/homepass/homepass-front/.env.production
 
 내용 예시:
 ```env
-NEXT_PUBLIC_BACKEND_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com/api
+NEXT_PUBLIC_BACKEND_API_URL=http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com/api
 ```
 
 > `.env.production` 변경 후 `sudo systemctl restart homepass-frontend`를 실행하세요. Systemd 서비스는 `EnvironmentFile=/home/ec2-user/homepass/homepass-front/.env.production`을 참조합니다.

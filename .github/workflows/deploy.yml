@@ -114,8 +114,8 @@ jobs:
              echo \"NAVER_SEARCH_CLIENT_ID=\$NAVER_SEARCH_CLIENT_ID\" >> .env && \
              echo \"NAVER_SEARCH_CLIENT_SECRET=\$NAVER_SEARCH_CLIENT_SECRET\" >> .env && \
              cd ../homepass-front && \
-             echo 'BACKEND_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com' > .env.local && \
-             echo 'NEXT_PUBLIC_API_URL=http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com' >> .env.local && \
+             echo 'BACKEND_API_URL=http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com' > .env.local && \
+             echo 'NEXT_PUBLIC_API_URL=http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com' >> .env.local && \
              echo \"NEXT_PUBLIC_NAVER_MAP_CLIENT_ID=\$NAVER_MAP_CLIENT_ID\" >> .env.local && \
              npm ci && \
              npm run build && \

@@ -1,4 +1,4 @@
-const PROD_BACKEND_URL = 'http://ec2-44-246-219-48.us-west-2.compute.amazonaws.com';
+const PROD_BACKEND_URL = 'http://ec2-35-82-41-239.us-west-2.compute.amazonaws.com';
 const DEFAULT_BACKEND_URL = process.env.NODE_ENV === 'production' ? PROD_BACKEND_URL : 'http://localhost:8000';
 
 const PRIVATE_BACKEND_URL =

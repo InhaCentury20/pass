@@ -115,7 +115,7 @@ export default function NaverMap({
 
   // 네이버 Maps 스크립트 로드
   useEffect(() => {
-    const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID;
+    const clientId = process.env.NEXT_PUBLIC_NAVER_MAP_CLIENT_ID || process.env.NAVER_MAP_CLIENT_ID;
 
     if (!clientId) {
       // 비동기로 에러 설정하여 effect 규칙 준수
