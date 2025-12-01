@@ -194,14 +194,7 @@ export default function ApplicationDetailPage() {
                       <span className="text-gray-500">월 임대료</span>
                       <span className="font-medium">{formatCurrency(detail.announcement_detail.monthly_rent)}</span>
                     </div>
-                    {detail.announcement_detail.eligibility && (
-                      <div>
-                        <span className="text-gray-500 block mb-1">신청 자격</span>
-                        <p className="text-gray-700 whitespace-pre-line">
-                          {detail.announcement_detail.eligibility}
-                        </p>
-                      </div>
-                    )}
+                    <ApplicationEligibilitySection eligibility={detail.announcement_detail.eligibility} />
                   </div>
                 ) : (
                   <p className="text-gray-500">연결된 공고 정보를 찾을 수 없습니다.</p>
@@ -213,5 +206,170 @@ export default function ApplicationDetailPage() {
       </div>
     </div>
   );
+}
+
+type ApplicationEligibilityJson =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: ApplicationEligibilityJson }
+  | ApplicationEligibilityJson[];
+
+type ApplicationEligibilityValue = ApplicationEligibilityJson;
+
+function ApplicationEligibilitySection({ eligibility }: { eligibility?: string | null }) {
+  const parsed = useMemo(() => {
+    if (!eligibility) return null;
+    try {
+      const result = JSON.parse(eligibility) as ApplicationEligibilityValue;
+      if (result && typeof result === 'object' && !Array.isArray(result)) {
+        return result;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }, [eligibility]);
+
+  if (!parsed) {
+    if (!eligibility) {
+      return null;
+    }
+    return (
+      <div className="mt-3">
+        <span className="text-gray-500 block mb-1">신청 자격</span>
+        <p className="text-gray-700 whitespace-pre-line">{eligibility}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 space-y-3">
+      <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+        <span>🧾</span> 신청 자격
+      </h3>
+      {Object.entries(parsed).map(([supplyType, supplyValue]) => (
+        <div
+          key={supplyType}
+          className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/40 to-indigo-50/40 p-3 space-y-3"
+        >
+          <p className="text-sm font-bold text-blue-700">{supplyType}</p>
+          {typeof supplyValue === 'object' && supplyValue !== null ? (
+            <div className="space-y-3">
+              {Object.entries(supplyValue as Record<string, ApplicationEligibilityValue>).map(
+                ([groupName, groupValue]) => (
+                  <ApplicationEligibilityGroupCard key={groupName} title={groupName} value={groupValue} />
+                ),
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-600">{String(supplyValue)}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ApplicationEligibilityGroupCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: ApplicationEligibilityValue;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-3 py-2"
+      >
+        <p className="font-semibold text-gray-900 text-sm">{title}</p>
+        <span className="text-[11px] text-gray-500 flex items-center gap-1">
+          {open ? '접기' : '펼치기'}
+          <span className={`transition-transform ${open ? 'rotate-180' : ''}`}>⌄</span>
+        </span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3">
+          {renderApplicationEligibilityDetails(value)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function renderApplicationEligibilityDetails(value: ApplicationEligibilityValue) {
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    value === null
+  ) {
+    const displayValue = value === null ? '정보 없음' : `${value}`;
+    return <p className="text-xs text-gray-600 whitespace-pre-line">{displayValue}</p>;
+  }
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return <p className="text-xs text-gray-600">정보 없음</p>;
+    }
+    return (
+      <div className="space-y-2">
+        {value.map((item, index) => (
+          <div key={index} className="rounded-lg bg-gray-50 p-2 border border-gray-100">
+            {renderApplicationEligibilityDetails(item)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    const entries = Object.entries(value as Record<string, ApplicationEligibilityValue>);
+    return (
+      <div className="space-y-1.5 text-xs text-gray-700">
+        {entries.map(([key, detail]) => (
+          <div
+            key={key}
+            className="flex flex-col gap-1 rounded-lg bg-gray-50 p-2 border border-gray-100"
+          >
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+              {key}
+            </span>
+            {typeof detail === 'object' && detail !== null ? (
+              <div className="space-y-1">
+                {Object.entries(detail as Record<string, ApplicationEligibilityValue>).map(
+                  ([innerKey, innerVal]) => (
+                    <div
+                      key={innerKey}
+                      className="flex flex-col gap-1 rounded-md bg-white/70 p-2 border border-gray-100"
+                    >
+                      <span className="text-[11px] text-gray-500">{innerKey}</span>
+                      {renderApplicationEligibilityDetails(innerVal)}
+                    </div>
+                  ),
+                )}
+              </div>
+            ) : (
+              <span className="text-xs text-gray-800">
+                {typeof detail === 'string' ||
+                typeof detail === 'number' ||
+                typeof detail === 'boolean'
+                  ? String(detail)
+                  : '정보 없음'}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <p className="text-xs text-gray-600">정보 없음</p>;
 }
 
