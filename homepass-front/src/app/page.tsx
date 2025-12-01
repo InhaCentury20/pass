@@ -44,20 +44,48 @@ export default function Home() {
   const fetchAnnouncements = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError('');
+
+    const PAGE_SIZE = 100;
+    const aggregated: Announcement[] = [];
+    const seen = new Set<number>();
+
     try {
-      const response = await getAnnouncements(
-        {
-          size: 50,
-          exclude_past: !showPast,
-          within_days: !showPast ? 30 : undefined,
-          order_by: 'post_date',
-          order: 'desc',
-        },
-        { signal },
-      );
-      setAnnouncements(response.items);
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        if (signal?.aborted) {
+          return;
+        }
+
+        const response = await getAnnouncements(
+          {
+            page,
+            size: PAGE_SIZE,
+            order_by: 'post_date',
+            order: 'desc',
+          },
+          { signal },
+        );
+
+        for (const item of response.items) {
+          if (!seen.has(item.announcement_id)) {
+            seen.add(item.announcement_id);
+            aggregated.push(item);
+          }
+        }
+
+        const total = typeof response.total === 'number' ? response.total : null;
+        const fetchedAll = total ? aggregated.length >= total : response.items.length < PAGE_SIZE;
+
+        hasMore = !fetchedAll;
+        page += 1;
+      }
+
+      if (!signal?.aborted) {
+        setAnnouncements(aggregated);
+      }
     } catch (err: unknown) {
-      // 요청 취소는 오류로 처리하지 않음
       const error = err as {
         name?: string;
         code?: string;
@@ -75,9 +103,11 @@ export default function Home() {
       console.error(err);
       setError('공고 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
-  }, [showPast]);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();

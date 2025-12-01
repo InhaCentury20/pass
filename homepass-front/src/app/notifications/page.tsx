@@ -89,7 +89,7 @@ export default function NotificationsPage() {
             </h1>
             <p className="text-gray-600">새로운 소식을 확인하세요</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3 justify-end">
             {unreadCount > 0 && (
               <div className="relative">
                 <span className="px-4 py-2 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-full text-sm font-semibold shadow-lg animate-pulse">
@@ -115,6 +115,17 @@ export default function NotificationsPage() {
                 />
               </button>
             </div>
+            <button
+              onClick={handleMarkAllRead}
+              disabled={unreadCount === 0}
+              className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                unreadCount === 0
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg'
+              }`}
+            >
+              전체 읽음 처리
+            </button>
           </div>
         </div>
 
@@ -221,16 +232,6 @@ export default function NotificationsPage() {
               </Card>
             )}
 
-            {unreadCount > 0 && (
-              <div className="mt-8 text-center animate-fade-in">
-                <button
-                  onClick={handleMarkAllRead}
-                  className="px-8 py-3 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-xl font-semibold hover:from-gray-200 hover:to-gray-300 shadow-md hover:shadow-lg transition-all duration-200"
-                >
-                  전체 읽음 처리
-                </button>
-              </div>
-            )}
           </>
         )}
       </div>
