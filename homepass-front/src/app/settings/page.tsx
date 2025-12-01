@@ -291,7 +291,7 @@ export default function SettingsPage() {
         : undefined,
       min_area: preferenceForm.min_area ? Number(preferenceForm.min_area) : undefined,
       max_area: preferenceForm.max_area ? Number(preferenceForm.max_area) : undefined,
-      max_deposit: preferenceForm.max_deposit ? Number(preferenceForm.max_deposit) * 10_000 : undefined,
+      max_deposit: preferenceForm.max_deposit ? Number(preferenceForm.max_deposit) : undefined,
       max_monthly_rent: preferenceForm.max_monthly_rent ? Number(preferenceForm.max_monthly_rent) : undefined,
       commute_base_address: preferenceForm.commute_base_address.trim() || undefined,
       max_commute_time_minutes: preferenceForm.max_commute_time_minutes
