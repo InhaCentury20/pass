@@ -593,7 +593,7 @@ export default function Home() {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex flex-wrap gap-2">
                         {announcement.dday !== undefined && (
-                          <Badge variant="danger" icon="⏰">
+                          <Badge variant={announcement.dday !== null && announcement.dday >= 0 ? "danger" : "default"} icon="⏰">
                             {announcement.dday !== null && announcement.dday >= 0 ? `D-${announcement.dday}` : '종료됨'}
                           </Badge>
                         )}
