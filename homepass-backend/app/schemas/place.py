@@ -54,3 +54,13 @@ class DirectionsResponse(BaseModel):
     distance: int  # 미터
     duration: int  # 밀리초
     path: List[List[float]]  # [[lat, lng], ...]
+
+
+class CommuteInfoResponse(BaseModel):
+    """출퇴근 정보 응답"""
+    start_address: str  # 출발지 주소 (공고 주소)
+    end_address: str  # 도착지 주소 (유저 주소)
+    distance: int  # 거리 (미터)
+    duration: int  # 소요 시간 (밀리초)
+    duration_minutes: int  # 소요 시간 (분)
+    path: List[List[float]]  # 경로 좌표 [[lat, lng], ...]

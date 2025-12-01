@@ -8,14 +8,16 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Announcement
+from app.models import Announcement, User
 from app.schemas import (
     AnnouncementDetailSchema,
     AnnouncementListResponse,
     AnnouncementSchema,
     AnnouncementScrapeRequest,
 )
+from app.schemas.place import CommuteInfoResponse
 from app.services.scraper_runner import scraper_runner
+from app.services.naver_maps import get_naver_maps_service, NaverMapsService
 
 router = APIRouter(prefix="/announcements", tags=["announcements"])
 
@@ -200,3 +202,65 @@ def get_announcement_detail(
     base = _serialize_announcement(announcement).model_dump()
     base["schedules"] = announcement.schedules
     return AnnouncementDetailSchema(**base)
+
+
+@router.get("/{announcement_id}/commute", response_model=CommuteInfoResponse)
+async def get_commute_info(
+    announcement_id: int,
+    db: Session = Depends(get_db),
+    naver_maps: NaverMapsService = Depends(get_naver_maps_service),
+) -> CommuteInfoResponse:
+    """
+    출퇴근 경로 정보 조회
+
+    출발지: 공고의 address_detail
+    도착지: user_id=4인 유저의 address
+    """
+    # 1. 공고 조회
+    announcement = db.get(Announcement, announcement_id)
+    if not announcement:
+        raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
+
+    # 2. 출발지 좌표 (공고 위치)
+    if not announcement.latitude or not announcement.longitude:
+        raise HTTPException(status_code=400, detail="공고의 위치 정보가 없습니다.")
+
+    start_lat = float(announcement.latitude)
+    start_lng = float(announcement.longitude)
+    start_address = announcement.address_detail or "공고 주소"
+
+    # 3. 도착지 조회 (user_id=4인 유저)
+    user = db.get(User, 4)
+    if not user or not user.address:
+        raise HTTPException(status_code=400, detail="유저 주소 정보가 없습니다.")
+
+    # 4. 도착지 주소를 좌표로 변환 (Geocoding)
+    geocode_result = await naver_maps.geocode(user.address)
+    if not geocode_result:
+        raise HTTPException(status_code=400, detail="유저 주소를 좌표로 변환할 수 없습니다.")
+
+    end_lat = geocode_result["lat"]
+    end_lng = geocode_result["lng"]
+    end_address = user.address
+
+    # 5. 경로 탐색 (Direction API)
+    directions_result = await naver_maps.get_directions(
+        start_lat=start_lat,
+        start_lng=start_lng,
+        end_lat=end_lat,
+        end_lng=end_lng,
+        option="trafast"  # 실시간 빠른 길
+    )
+
+    if not directions_result:
+        raise HTTPException(status_code=400, detail="경로를 찾을 수 없습니다.")
+
+    # 6. 응답 반환
+    return CommuteInfoResponse(
+        start_address=start_address,
+        end_address=end_address,
+        distance=directions_result["distance"],
+        duration=directions_result["duration"],
+        duration_minutes=directions_result["duration"] // 60000,  # 밀리초를 분으로 변환
+        path=directions_result["path"]
+    )

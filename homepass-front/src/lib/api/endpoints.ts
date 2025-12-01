@@ -21,6 +21,7 @@ export const API_ENDPOINTS = {
     LIST: '/api/v1/announcements',
     DETAIL: (id: number) => `/api/v1/announcements/${id}`,
     SCRAPE: '/api/v1/announcements/scrape',
+    COMMUTE: (id: number) => `/api/v1/announcements/${id}/commute`,
   },
   
   // 신청 관련

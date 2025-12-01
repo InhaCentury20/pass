@@ -211,3 +211,13 @@ export interface NearbyPlacesResponse {
   places: Place[];
 }
 
+// 출퇴근 정보 타입
+export interface CommuteInfo {
+  start_address: string;  // 출발지 주소 (공고 주소)
+  end_address: string;    // 도착지 주소 (유저 주소)
+  distance: number;       // 거리 (미터)
+  duration: number;       // 소요 시간 (밀리초)
+  duration_minutes: number; // 소요 시간 (분)
+  path: number[][];       // 경로 좌표 [[lat, lng], ...]
+}
+

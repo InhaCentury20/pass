@@ -5,6 +5,7 @@ import type {
   Announcement,
   AnnouncementDetail,
   AnnouncementListResponse,
+  CommuteInfo,
 } from '@/types/api';
 
 export interface AnnouncementQueryParams {
@@ -126,6 +127,11 @@ export interface AnnouncementScrapePayload {
 
 export const triggerAnnouncementsScrape = async (payload?: AnnouncementScrapePayload): Promise<void> => {
   await apiClient.post(API_ENDPOINTS.ANNOUNCEMENTS.SCRAPE, payload ?? {});
+};
+
+export const getCommuteInfo = async (announcementId: number): Promise<CommuteInfo> => {
+  const { data } = await apiClient.get<CommuteInfo>(API_ENDPOINTS.ANNOUNCEMENTS.COMMUTE(announcementId));
+  return data;
 };
 
 

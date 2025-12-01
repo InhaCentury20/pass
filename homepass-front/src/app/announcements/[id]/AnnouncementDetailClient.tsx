@@ -9,6 +9,7 @@ import BookmarkButton from '@/components/common/BookmarkButton';
 import { getMyBookmarks } from '@/lib/api/bookmarks';
 import { getNearbyPlaces } from '@/lib/api/places';
 import { createApplication } from '@/lib/api/applications';
+import { getCommuteInfo } from '@/lib/api/announcements';
 import dynamic from 'next/dynamic';
 
 // 네이버 지도 컴포넌트를 동적 임포트 (SSR 방지)
@@ -282,6 +283,13 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
 function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) {
   const [selectedCategory, setSelectedCategory] = useState('subway');
 
+  const { data: commuteInfo, isLoading: isLoadingCommute, error: commuteError } = useQuery({
+    queryKey: ['commute-info', announcement.announcement_id],
+    queryFn: () => getCommuteInfo(announcement.announcement_id),
+    enabled: !!announcement.latitude && !!announcement.longitude,
+    staleTime: 5 * 60 * 1000,
+  });
+
   return (
     <div className="space-y-6">
       <Card className="shadow-lg overflow-hidden">
@@ -308,20 +316,44 @@ function CommuteSection({ announcement }: { announcement: AnnouncementDetail }) 
           <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
             <span>🚇</span> 출퇴근 정보
           </h2>
-          <InfoRow
-            label="기준 주소"
-            value={announcement.commute_base_address ?? '정보 없음'}
-            emoji="📍"
-          />
-          <InfoRow
-            label="평균 이동 시간"
-            value={
-              announcement.commute_time !== undefined && announcement.commute_time !== null
-                ? `${announcement.commute_time}분`
-                : '정보 없음'
-            }
-            emoji="⏱️"
-          />
+
+          {isLoadingCommute ? (
+            <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
+              <div className="animate-spin w-8 h-8 mx-auto mb-2 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+              <div className="text-sm text-gray-600">출퇴근 정보 계산 중...</div>
+            </div>
+          ) : commuteError ? (
+            <div className="p-6 bg-yellow-50 rounded-xl border border-yellow-200">
+              <div className="text-sm text-yellow-700">출퇴근 정보를 불러올 수 없습니다.</div>
+            </div>
+          ) : commuteInfo ? (
+            <>
+              <InfoRow
+                label="출발지"
+                value={commuteInfo.start_address}
+                emoji="🏠"
+              />
+              <InfoRow
+                label="도착지"
+                value={commuteInfo.end_address}
+                emoji="📍"
+              />
+              <InfoRow
+                label="거리"
+                value={`${(commuteInfo.distance / 1000).toFixed(1)} km`}
+                emoji="📏"
+              />
+              <InfoRow
+                label="소요 시간"
+                value={`약 ${commuteInfo.duration_minutes}분`}
+                emoji="⏱️"
+              />
+            </>
+          ) : (
+            <div className="p-6 bg-gray-50 rounded-xl border border-gray-200 text-center">
+              <div className="text-sm text-gray-600">출퇴근 정보가 없습니다.</div>
+            </div>
+          )}
         </div>
       </Card>
 
