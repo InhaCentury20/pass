@@ -552,10 +552,6 @@ export default function Home() {
                 style={{ animationDelay: `${(idx + 1) * 0.05}s` }}
               >
                 <Card hover gradient className="h-full overflow-hidden">
-                  {announcement.is_customized && (
-                    <div className="h-1.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400"></div>
-                  )}
-
                   <div className="p-6 relative">
                     <div className="absolute top-4 right-4 z-10">
                       <BookmarkButton
@@ -566,11 +562,6 @@ export default function Home() {
                     </div>
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex flex-wrap gap-2">
-                        {announcement.is_customized && (
-                          <Badge variant="success" icon="⭐">
-                            맞춤
-                          </Badge>
-                        )}
                         {announcement.dday !== undefined && (
                           <Badge variant="danger" icon="⏰">
                             D-{announcement.dday}
