@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone, timedelta
-from typing import List
+from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from sqlalchemy import select
@@ -24,13 +24,37 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _ensure_aware(dt: datetime | None) -> datetime | None:
+def _ensure_aware(dt: datetime | str | None) -> datetime | None:
     if dt is None:
+        return None
+    if isinstance(dt, str):
+        dt = _parse_datetime(dt)
+        if dt is None:
+            return None
+    if not isinstance(dt, datetime):
         return None
     if dt.tzinfo is None or dt.tzinfo.utcoffset(dt) is None:
         # 타임존 정보가 없으면 UTC로 간주
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+
+def _parse_datetime(value: str) -> Optional[datetime]:
+    value = value.strip()
+    if not value:
+        return None
+    # ISO 8601 시도
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError:
+        pass
+    # 공고 데이터에서 자주 쓰이는 포맷들
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y.%m.%d", "%Y/%m/%d"):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+    return None
 
 
 def _calculate_dday(end_at: datetime | None) -> int | None:
