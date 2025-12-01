@@ -283,10 +283,17 @@ export default function Home() {
     setMaxRentFilter(null);
   }, []);
 
-  const handleResetPreferenceFilters = () => {
-    setPreferenceEnabled(false);
+  const resetAllFilters = useCallback(() => {
+    setSearchQuery('');
+    setSortBy('latest');
+    setShowPast(true);
     clearPreferenceFilters();
     setPreferenceApplied(false);
+  }, [clearPreferenceFilters]);
+
+  const handleResetPreferenceFilters = () => {
+    setPreferenceEnabled(false);
+    resetAllFilters();
   };
 
   const handlePreferenceToggle = async () => {
@@ -303,8 +310,7 @@ export default function Home() {
         console.error('Failed to reload preferences', err);
       }
     } else {
-      clearPreferenceFilters();
-      setPreferenceApplied(false);
+      resetAllFilters();
     }
   };
 
@@ -438,33 +444,80 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* 공고 업데이트 버튼 */}
-              <button
-                onClick={handleScrapeAnnouncements}
-                disabled={isScraping}
-                className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors flex items-center gap-2 ${
-                  isScraping
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg'
-                }`}
-              >
-                {isScraping ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    업데이트 중...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    공고 업데이트
-                  </>
-                )}
-              </button>
+              <div className="flex flex-1 flex-wrap items-center justify-end gap-3">
+                <div className="flex flex-col gap-2 rounded-xl border border-gray-200/80 bg-gray-50 px-4 py-2 min-w-[260px]">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm font-semibold text-gray-900 flex items-center gap-1">
+                      <span>🎯</span> 개인 맞춤형 공고
+                    </span>
+                    <button
+                      onClick={handlePreferenceToggle}
+                      className={`w-12 h-6 rounded-full relative transition-colors ${
+                        preferenceEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                      }`}
+                      aria-pressed={preferenceEnabled}
+                      aria-label="개인 맞춤형 공고 토글"
+                    >
+                      <span
+                        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                          preferenceEnabled ? 'translate-x-6' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                    <span className="text-xs text-gray-600">
+                      {preferenceEnabled ? '희망 조건 기반 추천 사용 중' : '비활성화됨'}
+                    </span>
+                  </div>
+                  {(preferenceApplied ||
+                    maxDepositFilter !== null ||
+                    maxRentFilter !== null ||
+                    selectedRegion ||
+                    selectedHousingType) && (
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      {selectedRegion && <Badge variant="default">지역: {selectedRegion}</Badge>}
+                      {selectedHousingType && <Badge variant="info">주택 유형: {selectedHousingType}</Badge>}
+                      {maxDepositFilter !== null && (
+                        <Badge variant="warning">보증금 ≤ {maxDepositFilter.toLocaleString()}만원</Badge>
+                      )}
+                      {maxRentFilter !== null && (
+                        <Badge variant="success">월세 ≤ {maxRentFilter.toLocaleString()}만원</Badge>
+                      )}
+                      <button
+                        onClick={handleResetPreferenceFilters}
+                        className="text-blue-600 hover:text-blue-800 font-medium underline-offset-4 hover:underline"
+                      >
+                        조건 초기화
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleScrapeAnnouncements}
+                  disabled={isScraping}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors flex items-center gap-2 ${
+                    isScraping
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  {isScraping ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      업데이트 중...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      공고 업데이트
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
             
             {/* 스크랩 메시지 */}
