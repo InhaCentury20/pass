@@ -630,44 +630,6 @@ export default function Home() {
                         </svg>
                       </span>
                     </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 border border-gray-200/70 bg-gray-50">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-gray-900 flex items-center gap-1">
-                  <span>🎯</span> 개인 맞춤형 공고
-                </span>
-                <button
-                  onClick={handlePreferenceToggle}
-                  className={`w-12 h-6 rounded-full relative transition-colors ${
-                    preferenceEnabled ? 'bg-blue-600' : 'bg-gray-300'
-                  }`}
-                  aria-pressed={preferenceEnabled}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-                      preferenceEnabled ? 'translate-x-6' : 'translate-x-0'
-                    }`}
-                  />
-                </button>
-                <span className="text-sm text-gray-600">
-                  {preferenceEnabled ? '희망 조건 기반 추천 활성화' : '비활성화됨'}
-                </span>
-              </div>
-              {(preferenceApplied || maxDepositFilter !== null || maxRentFilter !== null || selectedRegion || selectedHousingType) && (
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  {selectedRegion && <Badge variant="default">지역: {selectedRegion}</Badge>}
-                  {selectedHousingType && <Badge variant="info">주택 유형: {selectedHousingType}</Badge>}
-                  {maxDepositFilter !== null && <Badge variant="warning">보증금 ≤ {maxDepositFilter.toLocaleString()}만원</Badge>}
-                  {maxRentFilter !== null && <Badge variant="success">월세 ≤ {maxRentFilter.toLocaleString()}만원</Badge>}
-                  <button
-                    onClick={handleResetPreferenceFilters}
-                    className="text-blue-600 hover:text-blue-800 font-medium underline-offset-4 hover:underline"
-                  >
-                    조건 초기화
-                  </button>
-                </div>
-              )}
-            </div>
                   </div>
                 </Card>
               </Link>
