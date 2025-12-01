@@ -8,6 +8,7 @@ import type { Announcement, AnnouncementDetail } from '@/types/api';
 import BookmarkButton from '@/components/common/BookmarkButton';
 import { getMyBookmarks } from '@/lib/api/bookmarks';
 import { getNearbyPlaces } from '@/lib/api/places';
+import { createApplication } from '@/lib/api/applications';
 import dynamic from 'next/dynamic';
 
 // 네이버 지도 컴포넌트를 동적 임포트 (SSR 방지)
@@ -28,6 +29,8 @@ interface Props {
 
 export function AnnouncementDetailClient({ announcement }: Props) {
   const [activeTab, setActiveTab] = useState<TabType>('info');
+  const [isApplying, setIsApplying] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
 
   const tabs: Array<{ id: TabType; label: string; icon: string }> = [
     { id: 'info', label: '핵심 정보', icon: '📋' },
@@ -39,6 +42,23 @@ export function AnnouncementDetailClient({ announcement }: Props) {
     announcement.dday !== undefined && announcement.dday !== null
       ? `D-${announcement.dday}`
       : '마감 일정 미정';
+
+  const handleApply = async () => {
+    if (isApplying || hasApplied) {
+      return;
+    }
+    setIsApplying(true);
+    try {
+      await createApplication(announcement.announcement_id);
+      setHasApplied(true);
+      window.alert('신청 완료되었습니다!');
+    } catch (error) {
+      console.error('Failed to create application', error);
+      window.alert('신청에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
@@ -109,7 +129,12 @@ export function AnnouncementDetailClient({ announcement }: Props) {
             {activeTab === 'qa' && <QATab />}
           </div>
           <div className="lg:col-span-1">
-            <Sidebar announcement={announcement} />
+            <Sidebar
+              announcement={announcement}
+              onApply={handleApply}
+              isApplying={isApplying}
+              hasApplied={hasApplied}
+            />
           </div>
         </div>
       </div>
@@ -339,7 +364,17 @@ function QATab() {
   );
 }
 
-function Sidebar({ announcement }: { announcement: AnnouncementDetail }) {
+function Sidebar({
+  announcement,
+  onApply,
+  isApplying,
+  hasApplied,
+}: {
+  announcement: AnnouncementDetail;
+  onApply: () => void;
+  isApplying: boolean;
+  hasApplied: boolean;
+}) {
   const hasDepositRange =
     announcement.min_deposit != null && announcement.max_deposit != null;
   const averageDeposit = hasDepositRange
@@ -392,8 +427,16 @@ function Sidebar({ announcement }: { announcement: AnnouncementDetail }) {
 
       <Card gradient className="shadow-xl">
         <div className="p-6 space-y-3">
-          <button className="w-full px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-bold text-lg hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition-all duration-200">
-            ✨ 신청하기
+          <button
+            onClick={onApply}
+            disabled={isApplying || hasApplied}
+            className={`w-full px-6 py-4 rounded-xl font-bold text-lg transition-all duration-200 ${
+              hasApplied
+                ? 'bg-green-500 text-white cursor-default'
+                : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700'
+            } shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed`}
+          >
+            {hasApplied ? '✅ 신청 완료' : isApplying ? '신청 중...' : '✨ 신청하기'}
           </button>
           <div className="w-full flex justify-center">
             <BookmarkButton

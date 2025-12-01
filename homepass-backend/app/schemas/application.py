@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -44,4 +44,9 @@ class ApplicationDetailSchema(ApplicationItemSchema):
 class ApplicationListResponse(BaseModel):
     total: int
     items: List[ApplicationItemSchema] = Field(default_factory=list)
+
+
+class ApplicationCreateRequest(BaseModel):
+    announcement_id: int
+    status: Literal["applied", "document_review", "won", "failed"] = "applied"
 

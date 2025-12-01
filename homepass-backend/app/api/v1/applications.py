@@ -7,12 +7,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Application, User
+from app.models import Application, User, Announcement, Notification
 from app.schemas import (
     ApplicationAnnouncementSummary,
     ApplicationDetailSchema,
     ApplicationItemSchema,
     ApplicationListResponse,
+    ApplicationCreateRequest,
 )
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -35,6 +36,14 @@ def _get_primary_user(db: Session) -> User:
     if not user:
         raise HTTPException(status_code=404, detail="사용자 계정을 찾을 수 없습니다.")
     return user
+
+
+def _get_default_user(db: Session) -> User:
+    preferred_id = 4
+    user = db.get(User, preferred_id)
+    if user:
+        return user
+    return _get_primary_user(db)
 
 
 def _build_items(applications: list[Application]) -> list[ApplicationItemSchema]:
@@ -93,7 +102,7 @@ def _build_announcement_summary(announcement) -> ApplicationAnnouncementSummary 
 
 @router.get("", response_model=ApplicationListResponse)
 def get_applications(db: Session = Depends(get_db)) -> ApplicationListResponse:
-    user = _get_primary_user(db)
+    user = _get_default_user(db)
 
     stmt = (
         select(Application)
@@ -119,6 +128,52 @@ def get_application_detail(application_id: int, db: Session = Depends(get_db)) -
         **item_schema.model_dump(),
         announcement_detail=announcement_summary,
     )
+
+
+@router.post("", response_model=ApplicationItemSchema)
+def create_application(payload: ApplicationCreateRequest, db: Session = Depends(get_db)) -> ApplicationItemSchema:
+    user = _get_default_user(db)
+    announcement = db.get(Announcement, payload.announcement_id)
+    if not announcement:
+        raise HTTPException(status_code=404, detail="공고를 찾을 수 없습니다.")
+
+    stmt = (
+        select(Application)
+        .where(
+            Application.user_id == user.user_id,
+            Application.announcement_id == payload.announcement_id,
+        )
+    )
+    application = db.scalars(stmt).first()
+    status_value = payload.status or "applied"
+    now = _now()
+
+    if application:
+        application.status = status_value
+        application.status_updated_at = now
+    else:
+        application = Application(
+            user_id=user.user_id,
+            announcement_id=payload.announcement_id,
+            status=status_value,
+            applied_at=now,
+            status_updated_at=now,
+        )
+        db.add(application)
+
+    notification = Notification(
+        user_id=user.user_id,
+        announcement_id=announcement.announcement_id,
+        message=f"{announcement.title} 공고에 대한 신청이 완료되었습니다!",
+        is_read=False,
+        created_at=now,
+    )
+    db.add(notification)
+
+    db.commit()
+    db.refresh(application)
+
+    return _build_items([application])[0]
 
 
 @router.get("/users/{user_id}", response_model=ApplicationListResponse)
