@@ -503,10 +503,7 @@ function EligibilitySection({ eligibility }: { eligibility?: string | null }) {
           {typeof supplyValue === 'object' && supplyValue !== null ? (
             <div className="space-y-3">
               {Object.entries(supplyValue as Record<string, EligibilityValue>).map(([groupName, groupValue]) => (
-                <div key={groupName} className="rounded-xl bg-white border border-gray-200 p-4 shadow-sm">
-                  <p className="font-semibold text-gray-900 mb-2">{groupName}</p>
-                  {renderEligibilityDetails(groupValue)}
-                </div>
+                <EligibilityGroupCard key={groupName} title={groupName} value={groupValue} />
               ))}
             </div>
           ) : (
@@ -514,6 +511,31 @@ function EligibilitySection({ eligibility }: { eligibility?: string | null }) {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function EligibilityGroupCard({ title, value }: { title: string; value: EligibilityValue }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="rounded-xl bg-white border border-gray-200 shadow-sm overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-2 px-4 py-3"
+      >
+        <p className="font-semibold text-gray-900">{title}</p>
+        <span className="text-xs text-gray-500 flex items-center gap-1">
+          {open ? '접기' : '펼치기'}
+          <span className={`transition-transform ${open ? 'rotate-180' : ''}`}>⌄</span>
+        </span>
+      </button>
+      {open && (
+        <div className="px-4 pb-4">
+          {renderEligibilityDetails(value)}
+        </div>
+      )}
     </div>
   );
 }
