@@ -8,7 +8,12 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Application, User
-from app.schemas import ApplicationItemSchema, ApplicationListResponse
+from app.schemas import (
+    ApplicationAnnouncementSummary,
+    ApplicationDetailSchema,
+    ApplicationItemSchema,
+    ApplicationListResponse,
+)
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -66,6 +71,26 @@ def _build_items(applications: list[Application]) -> list[ApplicationItemSchema]
     return items
 
 
+def _build_announcement_summary(announcement) -> ApplicationAnnouncementSummary | None:
+    if not announcement:
+        return None
+    image_urls = announcement.image_urls or []
+    return ApplicationAnnouncementSummary(
+        announcement_id=announcement.announcement_id,
+        title=announcement.title,
+        housing_type=announcement.housing_type,
+        region=announcement.region,
+        application_end_date=announcement.application_end_date,
+        source_url=announcement.source_url,
+        application_link=announcement.application_link,
+        image_urls=image_urls,
+        min_deposit=announcement.min_deposit,
+        max_deposit=announcement.max_deposit,
+        monthly_rent=announcement.monthly_rent,
+        eligibility=announcement.eligibility,
+    )
+
+
 @router.get("", response_model=ApplicationListResponse)
 def get_applications(db: Session = Depends(get_db)) -> ApplicationListResponse:
     user = _get_primary_user(db)
@@ -81,7 +106,22 @@ def get_applications(db: Session = Depends(get_db)) -> ApplicationListResponse:
     return ApplicationListResponse(total=len(items), items=items)
 
 
-@router.get("/{user_id}", response_model=ApplicationListResponse)
+@router.get("/{application_id}", response_model=ApplicationDetailSchema)
+def get_application_detail(application_id: int, db: Session = Depends(get_db)) -> ApplicationDetailSchema:
+    application = db.get(Application, application_id)
+    if not application:
+        raise HTTPException(status_code=404, detail="신청 내역을 찾을 수 없습니다.")
+
+    item_schema = _build_items([application])[0]
+    announcement_summary = _build_announcement_summary(application.announcement)
+
+    return ApplicationDetailSchema(
+        **item_schema.model_dump(),
+        announcement_detail=announcement_summary,
+    )
+
+
+@router.get("/users/{user_id}", response_model=ApplicationListResponse)
 def get_applications_by_user(user_id: int, db: Session = Depends(get_db)) -> ApplicationListResponse:
     user = db.get(User, user_id)
     if not user:

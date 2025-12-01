@@ -86,6 +86,25 @@ export interface ApplicationItem {
   image_url?: string;
 }
 
+export interface ApplicationAnnouncementSummary {
+  announcement_id: number;
+  title: string;
+  housing_type?: string;
+  region?: string;
+  application_end_date?: string;
+  source_url?: string;
+  application_link?: string;
+  image_urls: string[];
+  min_deposit?: number;
+  max_deposit?: number;
+  monthly_rent?: number;
+  eligibility?: string;
+}
+
+export interface ApplicationDetail extends ApplicationItem {
+  announcement_detail?: ApplicationAnnouncementSummary;
+}
+
 export interface ApplicationListResponse {
   total: number;
   items: ApplicationItem[];

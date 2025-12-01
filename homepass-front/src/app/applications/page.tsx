@@ -48,6 +48,22 @@ export default function ApplicationsPage() {
     return applications.filter((app) => app.status === selectedStatus);
   }, [applications, selectedStatus]);
 
+  const statusCounts = useMemo(() => {
+    const counts: Record<StatusType, number> = {
+      all: applications.length,
+      applied: 0,
+      document_review: 0,
+      won: 0,
+      failed: 0,
+    };
+
+    applications.forEach((app) => {
+      counts[app.status] = (counts[app.status] ?? 0) + 1;
+    });
+
+    return counts;
+  }, [applications]);
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'applied':
@@ -96,6 +112,13 @@ export default function ApplicationsPage() {
                 >
                   <span className="mr-2">{statusInfo.icon}</span>
                   {statusInfo.label}
+                  <span
+                    className={`ml-2 inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-bold ${
+                      isActive ? 'bg-white/90 text-gray-900' : 'bg-gray-100 text-gray-600'
+                    }`}
+                  >
+                    {status === 'all' ? applications.length : statusCounts[status] ?? 0}
+                  </span>
                   {isActive && (
                     <span className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse"></span>
                   )}
@@ -182,9 +205,12 @@ export default function ApplicationsPage() {
                           공고 보기
                         </Link>
                       )}
-                      <button className="flex-1 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-200">
+                      <Link
+                        href={`/applications/${application.application_id}`}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg transition-all duration-200 text-center"
+                      >
                         상세 보기
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </Card>
