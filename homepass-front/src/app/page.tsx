@@ -22,6 +22,7 @@ export default function Home() {
   const [maxDepositFilter, setMaxDepositFilter] = useState<number | null>(null);
   const [maxRentFilter, setMaxRentFilter] = useState<number | null>(null);
   const [preferenceApplied, setPreferenceApplied] = useState(false);
+  const [preferenceEnabled, setPreferenceEnabled] = useState(true);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -90,23 +91,12 @@ export default function Home() {
     const loadPreference = async () => {
       try {
         const profile: UserProfileResponse = await fetchUserProfile();
-        if (profile.preference && !preferenceApplied) {
-          const pref = profile.preference;
-          const firstLocation =
-            pref.locations && pref.locations.length > 0 ? pref.locations[0] ?? '' : '';
-          if (firstLocation) {
-            setSelectedRegion(firstLocation);
-          }
-          if (pref.housing_types && pref.housing_types.length > 0) {
-            setSelectedHousingType(pref.housing_types[0] ?? '');
-          }
-          if (pref.max_deposit !== undefined && pref.max_deposit !== null) {
-            setMaxDepositFilter(pref.max_deposit);
-          }
-          if (pref.max_monthly_rent !== undefined && pref.max_monthly_rent !== null) {
-            setMaxRentFilter(pref.max_monthly_rent);
-          }
+        if (profile.preference && !preferenceApplied && preferenceEnabled) {
+          applyPreferenceFilters(profile.preference);
           setPreferenceApplied(true);
+        } else if (!preferenceEnabled) {
+          clearPreferenceFilters();
+          setPreferenceApplied(false);
         }
       } catch (err) {
         console.error('Failed to load preference info', err);
@@ -260,12 +250,62 @@ export default function Home() {
     maxRentFilter,
   ]);
 
-  const handleResetPreferenceFilters = () => {
+  const applyPreferenceFilters = useCallback((pref: UserProfileResponse['preference']) => {
+    if (!pref) return;
+    const firstLocation =
+      pref.locations && pref.locations.length > 0 ? pref.locations[0] ?? '' : '';
+    if (firstLocation) {
+      setSelectedRegion(firstLocation);
+    } else {
+      setSelectedRegion('');
+    }
+    if (pref.housing_types && pref.housing_types.length > 0) {
+      setSelectedHousingType(pref.housing_types[0] ?? '');
+    } else {
+      setSelectedHousingType('');
+    }
+    if (pref.max_deposit !== undefined && pref.max_deposit !== null) {
+      setMaxDepositFilter(pref.max_deposit);
+    } else {
+      setMaxDepositFilter(null);
+    }
+    if (pref.max_monthly_rent !== undefined && pref.max_monthly_rent !== null) {
+      setMaxRentFilter(pref.max_monthly_rent);
+    } else {
+      setMaxRentFilter(null);
+    }
+  }, []);
+
+  const clearPreferenceFilters = useCallback(() => {
     setSelectedRegion('');
     setSelectedHousingType('');
     setMaxDepositFilter(null);
     setMaxRentFilter(null);
+  }, []);
+
+  const handleResetPreferenceFilters = () => {
+    setPreferenceEnabled(false);
+    clearPreferenceFilters();
     setPreferenceApplied(false);
+  };
+
+  const handlePreferenceToggle = async () => {
+    const newEnabled = !preferenceEnabled;
+    setPreferenceEnabled(newEnabled);
+    if (newEnabled) {
+      try {
+        const profile = await fetchUserProfile();
+        if (profile.preference) {
+          applyPreferenceFilters(profile.preference);
+          setPreferenceApplied(true);
+        }
+      } catch (err) {
+        console.error('Failed to reload preferences', err);
+      }
+    } else {
+      clearPreferenceFilters();
+      setPreferenceApplied(false);
+    }
   };
 
   return (
@@ -280,7 +320,7 @@ export default function Home() {
         </div>
 
         {/* 필터 섹션 */}
-        <Card className="mb-8 p-6 shadow-lg animate-fade-in" style={{ animationDelay: '0.1s' }}>
+      <Card className="mb-8 p-6 shadow-lg animate-fade-in" style={{ animationDelay: '0.1s' }}>
           <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4">
               {/* 검색 바 */}
@@ -547,25 +587,43 @@ export default function Home() {
                       </span>
                     </div>
 
-            {(preferenceApplied || maxDepositFilter !== null || maxRentFilter !== null) && (
-              <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-gray-900 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-blue-700 flex items-center gap-1">
-                    <span>✨</span> 희망 조건 필터 적용 중
-                  </span>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 border border-gray-200/70 bg-gray-50">
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-gray-900 flex items-center gap-1">
+                  <span>🎯</span> 개인 맞춤형 공고
+                </span>
+                <button
+                  onClick={handlePreferenceToggle}
+                  className={`w-12 h-6 rounded-full relative transition-colors ${
+                    preferenceEnabled ? 'bg-blue-600' : 'bg-gray-300'
+                  }`}
+                  aria-pressed={preferenceEnabled}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
+                      preferenceEnabled ? 'translate-x-6' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+                <span className="text-sm text-gray-600">
+                  {preferenceEnabled ? '희망 조건 기반 추천 활성화' : '비활성화됨'}
+                </span>
+              </div>
+              {(preferenceApplied || maxDepositFilter !== null || maxRentFilter !== null || selectedRegion || selectedHousingType) && (
+                <div className="flex flex-wrap items-center gap-2 text-xs">
                   {selectedRegion && <Badge variant="default">지역: {selectedRegion}</Badge>}
                   {selectedHousingType && <Badge variant="info">주택 유형: {selectedHousingType}</Badge>}
                   {maxDepositFilter !== null && <Badge variant="warning">보증금 ≤ {maxDepositFilter.toLocaleString()}만원</Badge>}
                   {maxRentFilter !== null && <Badge variant="success">월세 ≤ {maxRentFilter.toLocaleString()}만원</Badge>}
+                  <button
+                    onClick={handleResetPreferenceFilters}
+                    className="text-blue-600 hover:text-blue-800 font-medium underline-offset-4 hover:underline"
+                  >
+                    조건 초기화
+                  </button>
                 </div>
-                <button
-                  onClick={handleResetPreferenceFilters}
-                  className="text-blue-600 hover:text-blue-800 font-medium underline-offset-4 hover:underline"
-                >
-                  조건 초기화
-                </button>
-              </div>
-            )}
+              )}
+            </div>
                   </div>
                 </Card>
               </Link>
