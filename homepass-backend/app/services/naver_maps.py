@@ -253,6 +253,8 @@ class NaverMapsService:
 
             # 결과 가공 및 거리 계산
             results = []
+            seen_places = set()  # 이미 추가된 장소의 정규화된 이름 추적
+
             for item in items:
                 mapx = item.get("mapx", "")
                 mapy = item.get("mapy", "")
@@ -271,10 +273,20 @@ class NaverMapsService:
                 if distance <= radius:
                     # HTML 태그 제거
                     name = item.get("title", "").replace("<b>", "").replace("</b>", "")
+
+                    # 중복 제거: 정규화된 이름으로 중복 체크
+                    normalized_name = self._normalize_place_name(name)
+
+                    # 이미 추가된 장소는 스킵
+                    if normalized_name in seen_places:
+                        continue
+
+                    seen_places.add(normalized_name)
+
                     address = item.get("roadAddress") or item.get("address", "")
 
                     results.append({
-                        "name": name,
+                        "name": normalized_name,  # 정규화된 이름 사용
                         "address": address,
                         "category": item.get("category", ""),
                         "telephone": item.get("telephone", ""),
@@ -306,6 +318,42 @@ class NaverMapsService:
         c = 2 * atan2(sqrt(a), sqrt(1 - a))
 
         return R * c
+
+    def _normalize_place_name(self, name: str) -> str:
+        """
+        장소 이름을 정규화하여 중복 제거용 기본 이름 추출
+
+        예:
+        - "서울상봉초등학교체육관" → "서울상봉초등학교"
+        - "상봉역 경춘선" → "상봉역"
+        - "망우역 7호선" → "망우역"
+        - "망우공원 산책로" → "망우공원"
+        """
+        import re
+
+        # 지하철역: "역" 뒤의 노선 정보 제거
+        if "역" in name:
+            # "상봉역 경춘선" → "상봉역"
+            # "상봉역(경춘선)" → "상봉역"
+            name = re.sub(r"역\s+.+$", "역", name)
+            name = re.sub(r"역\(.+\)$", "역", name)
+
+        # 학교: 학교 이름 뒤의 세부 시설명 제거
+        for school_type in ["초등학교", "중학교", "고등학교", "대학교"]:
+            if school_type in name:
+                # "서울상봉초등학교체육관" → "서울상봉초등학교"
+                idx = name.find(school_type)
+                if idx >= 0:
+                    name = name[:idx + len(school_type)]
+                break
+
+        # 공원: 공원 이름 뒤의 세부 정보 제거
+        if "공원" in name and not name.endswith("공원"):
+            idx = name.find("공원")
+            if idx >= 0:
+                name = name[:idx + len("공원")]
+
+        return name.strip()
 
     async def get_nearby_places(
         self,
