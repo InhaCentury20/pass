@@ -142,7 +142,15 @@ export function AnnouncementDetailClient({ announcement }: Props) {
   );
 }
 
-type EligibilityValue = string | Record<string, string | number | boolean>;
+type EligibilityJson =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: EligibilityJson }
+  | EligibilityJson[];
+
+type EligibilityValue = EligibilityJson;
 
 function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
   const imageUrls =
@@ -465,7 +473,7 @@ function EligibilitySection({ eligibility }: { eligibility?: string | null }) {
     if (!eligibility) return null;
     try {
       const result = JSON.parse(eligibility) as EligibilityValue;
-      if (result && typeof result === 'object') {
+      if (result && typeof result === 'object' && !Array.isArray(result)) {
         return result;
       }
     } catch {
@@ -511,32 +519,62 @@ function EligibilitySection({ eligibility }: { eligibility?: string | null }) {
 }
 
 function renderEligibilityDetails(value: EligibilityValue) {
-  if (typeof value === 'string') {
-    return <p className="text-sm text-gray-600 whitespace-pre-line">{value || '정보 없음'}</p>;
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean' ||
+    value === null
+  ) {
+    const displayValue =
+      value === null ? '정보 없음' : `${value}`;
+    return <p className="text-sm text-gray-600 whitespace-pre-line">{displayValue}</p>;
   }
 
-  const entries = Object.entries(value ?? {});
-  return (
-    <div className="space-y-2 text-sm text-gray-700">
-      {entries.map(([key, detail]) => (
-        <div key={key} className="flex flex-col gap-1 rounded-lg bg-gray-50 p-3 border border-gray-100">
-          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{key}</span>
-          {typeof detail === 'object' && detail !== null ? (
-            <div className="space-y-1">
-              {Object.entries(detail as Record<string, string>).map(([innerKey, innerVal]) => (
-                <div key={innerKey} className="flex justify-between gap-2">
-                  <span className="text-xs text-gray-500">{innerKey}</span>
-                  <span className="flex-1 text-right text-sm text-gray-700">{innerVal || '정보 없음'}</span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <span className="text-sm text-gray-800">{String(detail || '정보 없음')}</span>
-          )}
-        </div>
-      ))}
-    </div>
-  );
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return <p className="text-sm text-gray-600">정보 없음</p>;
+    }
+    return (
+      <div className="space-y-2">
+        {value.map((item, index) => (
+          <div key={index} className="rounded-lg bg-gray-50 p-3 border border-gray-100">
+            {renderEligibilityDetails(item)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (typeof value === 'object' && value !== null) {
+    const entries = Object.entries(value as Record<string, EligibilityValue>);
+    return (
+      <div className="space-y-2 text-sm text-gray-700">
+        {entries.map(([key, detail]) => (
+          <div key={key} className="flex flex-col gap-1 rounded-lg bg-gray-50 p-3 border border-gray-100">
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{key}</span>
+            {typeof detail === 'object' && detail !== null ? (
+              <div className="space-y-1">
+                {Object.entries(detail as Record<string, EligibilityValue>).map(([innerKey, innerVal]) => (
+                  <div key={innerKey} className="flex flex-col gap-1 rounded-md bg-white/70 p-2 border border-gray-100">
+                    <span className="text-xs text-gray-500">{innerKey}</span>
+                    {renderEligibilityDetails(innerVal)}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-sm text-gray-800">
+                {typeof detail === 'string' || typeof detail === 'number' || typeof detail === 'boolean'
+                  ? String(detail)
+                  : '정보 없음'}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return <p className="text-sm text-gray-600">정보 없음</p>;
 }
 
 function NearbyPlacesPanel({

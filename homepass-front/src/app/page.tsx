@@ -6,7 +6,7 @@ import axios from 'axios';
 import Card from '@/components/common/Card';
 import Badge from '@/components/common/Badge';
 import { getAnnouncements, triggerAnnouncementsScrape } from '@/lib/api/announcements';
-import type { Announcement, Preference, UserProfileResponse } from '@/types/api';
+import type { Announcement, UserProfileResponse } from '@/types/api';
 import BookmarkButton from '@/components/common/BookmarkButton';
 import { useQuery } from '@tanstack/react-query';
 import { getMyBookmarks } from '@/lib/api/bookmarks';
@@ -22,7 +22,6 @@ export default function Home() {
   const [maxDepositFilter, setMaxDepositFilter] = useState<number | null>(null);
   const [maxRentFilter, setMaxRentFilter] = useState<number | null>(null);
   const [preferenceApplied, setPreferenceApplied] = useState(false);
-  const [_preferenceInfo, setPreferenceInfo] = useState<Preference | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -85,32 +84,29 @@ export default function Home() {
     return () => {
       controller.abort();
     };
-  }, [showPast, fetchAnnouncements]);
+  }, [fetchAnnouncements]);
 
   useEffect(() => {
     const loadPreference = async () => {
       try {
         const profile: UserProfileResponse = await fetchUserProfile();
-        if (profile.preference) {
-          setPreferenceInfo(profile.preference);
-          if (!preferenceApplied) {
-            const pref = profile.preference;
-            const firstLocation =
-              pref.locations && pref.locations.length > 0 ? pref.locations[0] ?? '' : '';
-            if (firstLocation) {
-              setSelectedRegion(firstLocation);
-            }
-            if (pref.housing_types && pref.housing_types.length > 0) {
-              setSelectedHousingType(pref.housing_types[0] ?? '');
-            }
-            if (pref.max_deposit !== undefined && pref.max_deposit !== null) {
-              setMaxDepositFilter(pref.max_deposit);
-            }
-            if (pref.max_monthly_rent !== undefined && pref.max_monthly_rent !== null) {
-              setMaxRentFilter(pref.max_monthly_rent);
-            }
-            setPreferenceApplied(true);
+        if (profile.preference && !preferenceApplied) {
+          const pref = profile.preference;
+          const firstLocation =
+            pref.locations && pref.locations.length > 0 ? pref.locations[0] ?? '' : '';
+          if (firstLocation) {
+            setSelectedRegion(firstLocation);
           }
+          if (pref.housing_types && pref.housing_types.length > 0) {
+            setSelectedHousingType(pref.housing_types[0] ?? '');
+          }
+          if (pref.max_deposit !== undefined && pref.max_deposit !== null) {
+            setMaxDepositFilter(pref.max_deposit);
+          }
+          if (pref.max_monthly_rent !== undefined && pref.max_monthly_rent !== null) {
+            setMaxRentFilter(pref.max_monthly_rent);
+          }
+          setPreferenceApplied(true);
         }
       } catch (err) {
         console.error('Failed to load preference info', err);
