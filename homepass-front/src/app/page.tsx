@@ -45,7 +45,7 @@ export default function Home() {
     setLoading(true);
     setError('');
 
-    const PAGE_SIZE = 200;
+    const PAGE_SIZE = 100;
     const aggregated: Announcement[] = [];
     const seen = new Set<number>();
 
