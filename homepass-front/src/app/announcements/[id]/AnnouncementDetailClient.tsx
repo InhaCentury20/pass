@@ -115,8 +115,8 @@ export function AnnouncementDetailClient({ announcement }: Props) {
           </div>
         </div>
 
-        <Card className="mb-6 shadow-lg animate-fade-in" style={{ animationDelay: '0.1s' }}>
-          <nav className="flex space-x-2 p-2">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-6">
+          <nav className="flex space-x-2 p-2 bg-white/80 rounded-2xl shadow animate-fade-in" style={{ animationDelay: '0.1s' }}>
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -133,7 +133,7 @@ export function AnnouncementDetailClient({ announcement }: Props) {
             ))}
           </nav>
           {(announcement.source_url || announcement.original_pdf_url) && (
-            <div className="flex flex-wrap gap-3 px-4 pb-4">
+            <div className="flex flex-wrap gap-3 justify-end w-full lg:w-auto animate-fade-in" style={{ animationDelay: '0.15s' }}>
               {announcement.source_url && (
                 <a
                   href={announcement.source_url}
@@ -163,7 +163,7 @@ export function AnnouncementDetailClient({ announcement }: Props) {
               )}
             </div>
           )}
-        </Card>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6 animate-fade-in" style={{ animationDelay: '0.2s' }}>
