@@ -167,11 +167,13 @@ export default function Home() {
         uniqueRegions.add(announcement.region.split(' ')[0] ?? announcement.region);
       }
     });
-    const regionList = ['전체', ...Array.from(uniqueRegions)];
     if (selectedRegion && !uniqueRegions.has(selectedRegion) && selectedRegion !== '') {
-      regionList.push(selectedRegion);
+      uniqueRegions.add(selectedRegion);
     }
-    return regionList;
+    const sortedRegions = Array.from(uniqueRegions).sort((a, b) => 
+      a.localeCompare(b, 'ko')
+    );
+    return ['전체', ...sortedRegions];
   }, [announcements, selectedRegion]);
 
   const housingTypes = useMemo(() => {
@@ -181,11 +183,13 @@ export default function Home() {
         uniqueTypes.add(announcement.housing_type);
       }
     });
-    const typeList = ['전체', ...Array.from(uniqueTypes)];
     if (selectedHousingType && !uniqueTypes.has(selectedHousingType) && selectedHousingType !== '') {
-      typeList.push(selectedHousingType);
+      uniqueTypes.add(selectedHousingType);
     }
-    return typeList;
+    const sortedTypes = Array.from(uniqueTypes).sort((a, b) => 
+      a.localeCompare(b, 'ko')
+    );
+    return ['전체', ...sortedTypes];
   }, [announcements, selectedHousingType]);
 
   const filteredAnnouncements = useMemo(() => {
