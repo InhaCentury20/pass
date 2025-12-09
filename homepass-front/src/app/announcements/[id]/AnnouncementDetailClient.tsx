@@ -341,6 +341,11 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
                     <p className="text-lg font-semibold text-gray-900">{groupName}</p>
                         <span className="text-xs text-gray-500">구성 {items.length}개</span>
                   </div>
+                  {hasPredictedTier && (
+                    <p className="text-xs text-gray-500 text-right">
+                      * 예측 경쟁률은 AI 분석 결과로 실제와 다를 수 있으며 참고용으로만 활용하세요.
+                    </p>
+                  )}
                   <div className="overflow-x-auto rounded-2xl border border-gray-100">
                     <table className="min-w-full divide-y divide-gray-100 text-sm text-gray-900">
                       <thead className="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
