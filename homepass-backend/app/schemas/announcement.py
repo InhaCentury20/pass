@@ -11,6 +11,7 @@ class PriceInfoSchema(BaseModel):
     deposit_ratio: Optional[str] = None
     supply_type_primary: Optional[str] = None
     supply_type_secondary: Optional[str] = None
+    predicted_tier: Optional[int] = None
     deposit_amount: Optional[float] = None
     rent_amount: Optional[float] = None
 
