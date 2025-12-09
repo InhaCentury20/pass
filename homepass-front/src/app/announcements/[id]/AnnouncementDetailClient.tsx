@@ -320,6 +320,9 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
                   return ratioA;
                 });
 
+                const hasPredictedTier = sortedItems.some(item => item.predicted_tier !== undefined && item.predicted_tier !== null);
+                const hasDepositRatio = sortedItems.some(item => item.deposit_ratio && item.deposit_ratio !== 'N/A');
+
                 const supplyCounts = new Map<string, number>();
                 const typeCounts = new Map<string, number>();
                 sortedItems.forEach((option) => {
@@ -344,10 +347,14 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
                         <tr>
                               <th className="px-4 py-3 text-left">공급 구분</th>
                               <th className="px-4 py-3 text-left">타입</th>
-                          <th className="px-4 py-3 text-left">보증금 비율</th>
+                          {hasDepositRatio && (
+                            <th className="px-4 py-3 text-left">보증금 비율</th>
+                          )}
                           <th className="px-4 py-3 text-right">보증금</th>
                           <th className="px-4 py-3 text-right">임대료</th>
-                          <th className="px-4 py-3 text-center">예측 경쟁률</th>
+                          {hasPredictedTier && (
+                            <th className="px-4 py-3 text-center">예측 경쟁률</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
@@ -356,6 +363,7 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
                             const typeKey = `${supplyKey}||${option.type ?? '정보 없음'}`;
                             const showSupply = (supplyRendered.get(supplyKey) ?? 0) === 0;
                             const showType = (typeRendered.get(typeKey) ?? 0) === 0;
+                            const tierInfo = getPredictedTierLabel(option.predicted_tier);
                             supplyRendered.set(supplyKey, (supplyRendered.get(supplyKey) ?? 0) + 1);
                             typeRendered.set(typeKey, (typeRendered.get(typeKey) ?? 0) + 1);
 
@@ -374,18 +382,20 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
                                     {option.type ?? '정보 없음'}
                                   </td>
                                 )}
-                                <td className="px-4 py-3">{option.deposit_ratio ?? '정보 없음'}</td>
+                                {hasDepositRatio && (
+                                  <td className="px-4 py-3">{option.deposit_ratio ?? '정보 없음'}</td>
+                                )}
                                 <td className="px-4 py-3 text-right">{formatAmount(option.deposit_amount)}</td>
                                 <td className="px-4 py-3 text-right">{formatAmount(option.rent_amount)}</td>
-                                <td className="px-4 py-3 text-center">
+                                {hasPredictedTier && (<td className="px-4 py-3 text-center">
                                   {option.predicted_tier !== undefined ? (
-                                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getPredictedTierLabel(option.predicted_tier).bgColor} ${getPredictedTierLabel(option.predicted_tier).color}`}>
-                                      {getPredictedTierLabel(option.predicted_tier).label}
+                                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${tierInfo.bgColor} ${tierInfo.color}`}>
+                                      {tierInfo.label}
                                     </span>
                                   ) : (
                                     <span className="text-gray-500 text-sm">정보 없음</span>
                                   )}
-                                </td>
+                                </td>)}
                               </tr>
                             );
                           })}
