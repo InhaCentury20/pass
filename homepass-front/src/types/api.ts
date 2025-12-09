@@ -41,6 +41,7 @@ export interface PriceOption {
   deposit_ratio?: string;
   supply_type_primary?: string;
   supply_type_secondary?: string;
+  predicted_tier?: number;
   deposit_amount?: number;
   rent_amount?: number;
 }

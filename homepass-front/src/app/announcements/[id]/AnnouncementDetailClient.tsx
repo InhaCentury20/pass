@@ -232,6 +232,19 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
     return `${value.toLocaleString()}만원`;
   };
 
+  const getPredictedTierLabel = (tier?: number) => {
+    switch (tier) {
+      case 0:
+        return { label: '미달', color: 'text-blue-600', bgColor: 'bg-blue-50' };
+      case 1:
+        return { label: '보통', color: 'text-yellow-600', bgColor: 'bg-yellow-50' };
+      case 2:
+        return { label: '인기', color: 'text-red-600', bgColor: 'bg-red-50' };
+      default:
+        return { label: '정보 없음', color: 'text-gray-600', bgColor: 'bg-gray-50' };
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Card className="overflow-hidden shadow-lg">
@@ -334,6 +347,7 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
                           <th className="px-4 py-3 text-left">보증금 비율</th>
                           <th className="px-4 py-3 text-right">보증금</th>
                           <th className="px-4 py-3 text-right">임대료</th>
+                          <th className="px-4 py-3 text-center">예측 경쟁률</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 bg-white">
@@ -363,6 +377,15 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
                                 <td className="px-4 py-3">{option.deposit_ratio ?? '정보 없음'}</td>
                                 <td className="px-4 py-3 text-right">{formatAmount(option.deposit_amount)}</td>
                                 <td className="px-4 py-3 text-right">{formatAmount(option.rent_amount)}</td>
+                                <td className="px-4 py-3 text-center">
+                                  {option.predicted_tier !== undefined ? (
+                                    <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${getPredictedTierLabel(option.predicted_tier).bgColor} ${getPredictedTierLabel(option.predicted_tier).color}`}>
+                                      {getPredictedTierLabel(option.predicted_tier).label}
+                                    </span>
+                                  ) : (
+                                    <span className="text-gray-500 text-sm">정보 없음</span>
+                                  )}
+                                </td>
                               </tr>
                             );
                           })}
