@@ -175,6 +175,7 @@ class Announcement(Base):
             "deposit_ratio": first("보증금%", "deposit_ratio"),
             "supply_type_primary": first("공급유형1", "supply_type_primary"),
             "supply_type_secondary": first("공급유형2", "supply_type_secondary"),
+            "predicted_tier": first("예측경쟁률", "predicted_tier"),
             "deposit_amount": to_float(first("보증금(만원)", "deposit_amount")),
             "rent_amount": to_float(first("임대료(만원)", "rent_amount")),
         }
