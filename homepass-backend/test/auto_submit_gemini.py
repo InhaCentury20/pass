@@ -61,7 +61,7 @@ def force_react_change(page, selector, value):
 def run_automation():
     with sync_playwright() as p:
         # 브라우저 실행 (속도 조절 slow_mo=100)
-        browser = p.chromium.launch(headless=False, slow_mo=100)
+        browser = p.chromium.launch(headless=True)
         context = browser.new_context(viewport={'width': 1920, 'height': 1080})
         page = context.new_page()
         page.set_default_timeout(20000)
