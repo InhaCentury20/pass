@@ -195,10 +195,7 @@ type EligibilityJson =
 type EligibilityValue = EligibilityJson;
 
 function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
-  const imageUrls =
-    announcement.image_urls.length > 0
-      ? announcement.image_urls
-      : ['https://homepass-mock.s3.amazonaws.com/announcements/placeholder.jpg'];
+  const imageUrls = announcement.image_urls;
   const hasDepositRange =
     announcement.min_deposit != null && announcement.max_deposit != null;
   const formattedDepositRange = hasDepositRange
@@ -247,28 +244,31 @@ function InfoSection({ announcement }: { announcement: AnnouncementDetail }) {
 
   return (
     <div className="space-y-6">
-      <Card className="overflow-hidden shadow-lg">
-        <div className="p-4">
-          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900">
-            <span>🖼️</span> 이미지 갤러리
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {imageUrls.map((img, idx) => (
-              <div
-                key={`${img}-${idx}`}
-                className="aspect-video bg-gray-100 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={img}
-                  alt={`${announcement.title} 이미지 ${idx + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
+      {imageUrls && imageUrls.length > 0 && (
+        <Card className="overflow-hidden shadow-lg">
+          <div className="p-4">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-gray-900">
+              <span>🖼️</span> 이미지 갤러리
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {imageUrls.map((img, idx) => (
+                <div
+                  key={`${img}-${idx}`}
+                  className="aspect-video bg-gray-100 rounded-xl overflow-hidden border border-gray-200 flex items-center justify-center"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img}
+                    alt={`${announcement.title} 이미지 ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      )}
+      
 
       <Card gradient className="shadow-lg">
         <div className="p-6 space-y-4">
