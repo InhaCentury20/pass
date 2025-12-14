@@ -265,7 +265,7 @@ export default function Home() {
           // Post_Date 우선 정렬(내림차순), 없으면 scraped_at → application_end_date
           const getDate = (announcement: Announcement) =>
             new Date(
-              announcement.post_date ?? announcement.scraped_at ?? announcement.application_end_date ?? 0,
+              announcement.post_date ?? announcement.application_end_date ?? announcement.scraped_at ?? 0,
             ).getTime();
           return getDate(b) - getDate(a);
         }
