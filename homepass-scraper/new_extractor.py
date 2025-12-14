@@ -5,7 +5,16 @@ import re
 import io
 import pymysql
 import requests
+import sys
+from datetime import datetime
 from predictor import preprocess_and_predict_group, load_model_assets
+
+
+def log(message, level="INFO"):
+    """콘솔 로깅 함수"""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{timestamp}] [{level}] {message}", flush=True)
+    sys.stdout.flush()  # 버퍼 즉시 플러시
 
 
 class AnsimJutaekParser:
@@ -934,52 +943,122 @@ DB_CONFIG = {
 
 
 def main():
+    start_time = datetime.now()
+    log("=" * 80, "INFO")
+    log(f"🚀 New Extractor 시작", "INFO")
+    log(f"   시작 시간: {start_time.strftime('%Y-%m-%d %H:%M:%S')}", "INFO")
+    log("=" * 80, "INFO")
+    
     parser = AnsimJutaekParser()
-
     conn = None
 
     try:
-        print("--- DB 연결 중... ---")
+        log("📊 DB 연결 시도 중...", "INFO")
+        log(f"   호스트: {DB_CONFIG['host']}", "DEBUG")
+        log(f"   데이터베이스: {DB_CONFIG['database']}", "DEBUG")
+        
         conn = pymysql.connect(**DB_CONFIG)
+        log("✅ DB 연결 성공", "INFO")
 
         cursor = conn.cursor()
 
         select_sql = "SELECT * FROM Announcements WHERE listing_number is not null order by listing_number desc limit 5"
+        log(f"🔍 쿼리 실행: {select_sql}", "DEBUG")
 
         cursor.execute(select_sql)
         rows = cursor.fetchall()
-        print(f"--- 총 {len(rows)}개의 처리 대상 발견 ---")
+        log(f"📋 총 {len(rows)}개의 처리 대상 발견", "INFO")
+        
+        if len(rows) == 0:
+            log("⚠️ 처리할 공고가 없습니다.", "WARN")
+            return
 
         success_count = 0
+        fail_count = 0
 
+        log("🤖 ML 모델 로딩 중...", "INFO")
         model = load_model_assets()
+        log("✅ ML 모델 로딩 완료", "INFO")
+        log("-" * 80, "INFO")
 
-        for row in rows:
+        for idx, row in enumerate(rows, 1):
+            announcement_id = row["announcement_id"]
+            title = row.get("title", "제목 없음")
+            listing_number = row.get("listing_number", "N/A")
+            
+            log(f"[{idx}/{len(rows)}] 처리 시작", "INFO")
+            log(f"   📌 ID: {announcement_id}", "INFO")
+            log(f"   📌 Listing Number: {listing_number}", "INFO")
+            log(f"   📌 제목: {title[:50]}{'...' if len(title) > 50 else ''}", "INFO")
+            
             try:
-                parser.update_row(row, cursor)  # 커서를 넘겨줌
+                # 1. 파서 실행
+                log(f"   [1/3] PDF 파싱 시작...", "DEBUG")
+                parser.update_row(row, cursor)
+                log(f"   [1/3] ✅ PDF 파싱 완료", "DEBUG")
+                
+                # 2. 가격 예측
+                log(f"   [2/3] 가격 예측 시작...", "DEBUG")
                 updated_price_list = preprocess_and_predict_group(row, model)
+                
                 if updated_price_list:
+                    log(f"   [2/3] ✅ 가격 예측 완료: {len(updated_price_list)}개 항목", "DEBUG")
+                    
+                    # 3. DB 업데이트
+                    log(f"   [3/3] DB 업데이트 시작...", "DEBUG")
                     new_json_str = json.dumps(updated_price_list, ensure_ascii=False)
-                    update_sql = (
-                        "UPDATE Announcements SET price = %s WHERE announcement_id = %s"
-                    )
-                    cursor.execute(update_sql, (new_json_str, row["announcement_id"]))
+                    update_sql = "UPDATE Announcements SET price = %s WHERE announcement_id = %s"
+                    cursor.execute(update_sql, (new_json_str, announcement_id))
+                    log(f"   [3/3] ✅ DB 업데이트 완료", "DEBUG")
+                else:
+                    log(f"   [2/3] ⚠️ 가격 예측 결과 없음", "WARN")
+                
                 success_count += 1
+                log(f"   ✅ 공고 처리 성공", "INFO")
+                
             except Exception as e:
-                print(f"ID {row['announcement_id']} 처리 중 에러: {e}")
+                fail_count += 1
+                log(f"   ❌ 공고 처리 실패: {str(e)}", "ERROR")
+                import traceback
+                log(f"   상세 에러:\n{traceback.format_exc()}", "ERROR")
+            
+            log("-" * 80, "INFO")
 
+        log("💾 DB 커밋 시작...", "INFO")
         conn.commit()
-        print(f"--- 총 {success_count}건 업데이트 완료 및 커밋 ---")
+        log("✅ DB 커밋 완료", "INFO")
+        
+        end_time = datetime.now()
+        elapsed = (end_time - start_time).total_seconds()
+        
+        log("=" * 80, "INFO")
+        log("🎉 처리 완료!", "INFO")
+        log(f"   ✅ 성공: {success_count}건", "INFO")
+        log(f"   ❌ 실패: {fail_count}건", "INFO")
+        log(f"   ⏱️  소요 시간: {elapsed:.2f}초", "INFO")
+        log(f"   🕐 종료 시간: {end_time.strftime('%Y-%m-%d %H:%M:%S')}", "INFO")
+        log("=" * 80, "INFO")
 
     except Exception as e:
-        print(f"--- 치명적 에러 발생: {e} ---")
+        log("=" * 80, "ERROR")
+        log(f"💥 치명적 에러 발생: {str(e)}", "ERROR")
+        import traceback
+        log(f"상세 에러:\n{traceback.format_exc()}", "ERROR")
+        log("=" * 80, "ERROR")
+        
         if conn:
-            conn.rollback()
+            log("⏪ 트랜잭션 롤백 시도...", "WARN")
+            try:
+                conn.rollback()
+                log("✅ 롤백 완료", "INFO")
+            except Exception as rollback_err:
+                log(f"❌ 롤백 실패: {rollback_err}", "ERROR")
 
     finally:
         if conn:
+            log("🔌 DB 연결 종료 중...", "INFO")
             conn.close()
-        print("--- DB 연결 종료 ---")
+            log("✅ DB 연결 종료 완료", "INFO")
 
 
 if __name__ == "__main__":
