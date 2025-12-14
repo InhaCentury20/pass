@@ -944,7 +944,7 @@ def main():
 
         cursor = conn.cursor()
 
-        select_sql = "SELECT * FROM Announcements WHERE listing_number is not null order by announcement_id desc limit 5"
+        select_sql = "SELECT * FROM Announcements WHERE listing_number is not null order by listing_number desc limit 5"
 
         cursor.execute(select_sql)
         rows = cursor.fetchall()
