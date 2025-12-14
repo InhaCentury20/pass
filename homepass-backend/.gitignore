@@ -54,3 +54,8 @@ Thumbs.db
 *.pyc
 .cache/
 
+# 테스트 출력물
+test_outputs/
+*.png
+*.html
+
