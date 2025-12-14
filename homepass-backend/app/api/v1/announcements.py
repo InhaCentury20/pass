@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone, timedelta
 from typing import List, Optional
 
@@ -18,6 +19,8 @@ from app.schemas import (
 from app.schemas.place import CommuteInfoResponse
 from app.services.scraper_runner import scraper_runner
 from app.services.naver_maps import get_naver_maps_service, NaverMapsService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/announcements", tags=["announcements"])
 
@@ -182,13 +185,26 @@ def trigger_announcements_scrape(
     payload: AnnouncementScrapeRequest = Body(default_factory=AnnouncementScrapeRequest),
 ):
     """Starts the external Scrapy crawler to refresh announcement data."""
+    logger.info("=" * 80)
+    logger.info("🎯 API: 공고 스크래핑 요청 받음")
+    logger.info(f"   요청 시간: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"   Payload: start_board_id={payload.start_board_id}, days_limit={payload.days_limit}")
+    logger.info("=" * 80)
+    
     try:
+        logger.info("📞 scraper_runner.start() 호출 중...")
         scraper_runner.start(payload.start_board_id, payload.days_limit)
+        logger.info("✅ scraper_runner.start() 호출 성공")
+        return {"status": "started"}
     except RuntimeError as exc:
+        logger.warning(f"⚠️ 스크래퍼 이미 실행 중: {exc}")
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except FileNotFoundError as exc:
+        logger.error(f"❌ 파일을 찾을 수 없음: {exc}")
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    return {"status": "started"}
+    except Exception as exc:
+        logger.exception(f"❌ 예상치 못한 에러: {exc}")
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 @router.get("/{announcement_id}", response_model=AnnouncementDetailSchema)
