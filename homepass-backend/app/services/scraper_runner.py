@@ -64,6 +64,7 @@ class ScraperRunner:
             scraper_dir, python_path = self._resolve_paths()
             self._run_soco_spider(scraper_dir, python_path, start_board_id, days_limit)
             self._run_lh_import(scraper_dir, python_path)
+            self._run_extractor(scraper_dir, python_path)
         except Exception as exc:  # noqa: BLE001
             logger.exception("Scraper pipeline failed: %s", exc)
         finally:
@@ -91,6 +92,14 @@ class ScraperRunner:
             return
         cmd = [str(python_path), str(lh_script)]
         self._run_subprocess(cmd, scraper_dir, "LH importer")
+
+    def _run_extractor(self, scraper_dir: Path, python_path: Path) -> None:
+        extractor_script = scraper_dir / "new_extractor.py"
+        if not extractor_script.exists():
+            logger.warning("Extractor script not found at %s; skipping", extractor_script)
+            return
+        cmd = [str(python_path), str(extractor_script)]
+        self._run_subprocess(cmd, scraper_dir, "New extractor")
 
     def _run_subprocess(self, cmd: list[str], cwd: Path, label: str) -> None:
         logger.info("Starting %s: %s", label, " ".join(cmd))
