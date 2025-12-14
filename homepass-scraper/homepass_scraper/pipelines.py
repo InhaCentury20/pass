@@ -248,7 +248,7 @@ class MySQLAnnouncementsPipeline:
             pick_value("source_organization")
         )
         source_url = self._sanitize_str(pick_value("post_url")) or self._sanitize_str(pick_value("source_url"))
-        housing_type = self._sanitize_str(pick_value("category")) or self._sanitize_str(pick_value("housing_type"))
+        housing_type = "청년안심주택"
 
         # 주소/지역
         address_detail = self._sanitize_str(pick_value("location")) or self._sanitize_str(pick_value("address_detail"))
@@ -345,7 +345,7 @@ class MySQLAnnouncementsPipeline:
             ON DUPLICATE KEY UPDATE
                 source_organization = VALUES(source_organization),
                 source_url = VALUES(source_url),
-                housing_type = VALUES(housing_type),
+                housing_type = "청년안심주택",
                 region = VALUES(region),
                 address_detail = VALUES(address_detail),
                 post_date = VALUES(post_date),
