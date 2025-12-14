@@ -26,6 +26,9 @@ class SocoBoardSpider(Spider):
     name = "soco_board_spider"
     allowed_domains = ["soco.seoul.go.kr"]
 
+    # 이 스파이더는 무조건 청년안심주택 공고만 수집
+    HOUSING_TYPE = "청년안심주택"
+
     custom_settings = {
         "DOWNLOAD_DELAY": 0.4,
         "CONCURRENT_REQUESTS": 2,
@@ -220,7 +223,7 @@ class SocoBoardSpider(Spider):
             "contractor": row.get("optn3"),
             "listing_number": list_number,
             "board_id": board_id,
-            "housing_type": "청년안심주택",
+            "housing_type": self.HOUSING_TYPE,  # 무조건 청년안심주택으로 설정
         }
         if board_content_text:
             item["parsed_content"] = {"board_content_text": board_content_text}

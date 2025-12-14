@@ -63,7 +63,8 @@ class ScraperRunner:
         try:
             scraper_dir, python_path = self._resolve_paths()
             self._run_soco_spider(scraper_dir, python_path, start_board_id, days_limit)
-            self._run_lh_import(scraper_dir, python_path)
+            # LH importer는 제외 (사용자 요청으로 실행하지 않음)
+            # self._run_lh_import(scraper_dir, python_path)
             self._run_extractor(scraper_dir, python_path)
         except Exception as exc:  # noqa: BLE001
             logger.exception("Scraper pipeline failed: %s", exc)
