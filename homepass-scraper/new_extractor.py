@@ -6,6 +6,7 @@ import io
 import pymysql
 import requests
 import sys
+import os
 from datetime import datetime
 from predictor import preprocess_and_predict_group, load_model_assets
 
@@ -932,13 +933,13 @@ class AnsimJutaekParser:
 
 
 DB_CONFIG = {
-    "host": "century20-rds.clqcgo84gd3x.us-west-2.rds.amazonaws.com",
-    "user": "admin",
-    "password": "century20!",
-    "db": "century20",
-    "port": 3306,
+    "host": os.getenv("DB_HOST"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "db": os.getenv("DB_NAME"),
+    "port": int(os.getenv("DB_PORT")),
     "charset": "utf8mb4",
-    "cursorclass": pymysql.cursors.DictCursor,  # SELECT 결과를 딕셔너리로 받기 위해 필수
+    "cursorclass": pymysql.cursors.DictCursor,
 }
 
 
